@@ -1,13 +1,13 @@
 /// This is only supporting Trouble Brewing.
 #[allow(dead_code)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Player {
     Unresolved,
     Seat(i32),
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Townsfolk {
     Washerwoman,
     Librarian,
@@ -25,7 +25,7 @@ enum Townsfolk {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Outsider {
     Butler,
     Saint,
@@ -34,7 +34,7 @@ enum Outsider {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Minion {
     Baron,
     Poisoner,
@@ -43,13 +43,13 @@ enum Minion {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Demon {
     Imp,
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Character {
     GoodTownsfolk(Townsfolk),
     GoodOutsider(Outsider),
@@ -58,7 +58,7 @@ enum Character {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum LiveOrDie {
     Lives,
     Dies,
@@ -68,7 +68,7 @@ enum LiveOrDie {
 // Some of this might come out publicily.
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Log {
     WasherwomanSees(Player, Player, Townsfolk), // https://wiki.bloodontheclocktower.com/Washerwoman
     LibrarianSees(Player, Player, Outsider),    // https://wiki.bloodontheclocktower.com/Librarian
@@ -96,7 +96,7 @@ enum Log {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum ReportLog {
     OnTime(Player, Log),
 }
@@ -110,6 +110,7 @@ fn main() {
 }
 
 #[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq)]
 enum Constraint {
     Is(Player, Character),
     IsPoisoned(Player),
@@ -117,6 +118,7 @@ enum Constraint {
 }
 
 #[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq)]
 enum CompoundConstraint {
     AllOf(Vec<Constraint>),
     OneOf(Vec<Vec<Constraint>>),
@@ -133,6 +135,7 @@ fn expect(report_log : ReportLog) ->  CompoundConstraint {
     use Townsfolk::Washerwoman;
 
     return match report_log {
+        // Washerwoman
         ReportLog::OnTime(washerwoman, Log::WasherwomanSees(a, b, townsfolk)) =>  OneOf(
             vec![
                 vec![Is(washerwoman, GoodTownsfolk(Washerwoman)), Is(a, GoodTownsfolk(townsfolk))],
@@ -149,13 +152,34 @@ fn expect(report_log : ReportLog) ->  CompoundConstraint {
 
 #[cfg(test)] // Only compiles when running 'cargo test'
 mod tests {
-    // use super::*; // Import names from the outer scope
+    use super::*; // Import names from the outer scope
+    use Character::*;
+    use Townsfolk::*;
+    use Minion::*;
+    use Player::*;
+    use Constraint::*;
+    
 
     #[test]
-    fn test_add() {
-        // Live and Imp-Person | NRB Play Blood On The Clocktower
-        // https://www.youtube.com/watch?v=m14N28Lq-jM
-        assert_eq!(1 + 1, 2);
+    fn test_expect_washerwoman_sees_foo_or_bar_as_empath() {
+        let ww = Seat(1);
+        let foo = Seat(2);
+        let bar = Seat(3);
+
+        let reported = ReportLog::OnTime(ww, Log::WasherwomanSees(foo, bar, Empath));
+        let want = CompoundConstraint::OneOf(vec![
+             vec![Is(Seat(1), GoodTownsfolk(Washerwoman)), Is(Seat(2), GoodTownsfolk(Empath))], 
+             vec![Is(Seat(1), GoodTownsfolk(Washerwoman)), Is(Seat(3), GoodTownsfolk(Empath))], 
+             vec![Is(Seat(1), GoodTownsfolk(Washerwoman)), Is(Seat(2), EvilMinion(Spy))], 
+             vec![Is(Seat(1), GoodTownsfolk(Washerwoman)), Is(Seat(3), EvilMinion(Spy))], 
+             vec![IsPoisoned(Seat(1))], 
+             vec![IsDrunk(Seat(1), GoodTownsfolk(Washerwoman))],
+        ]);
+        assert_eq!(expect(reported), want);
     }
+
+    // TODO:
+    // Live and Imp-Person | NRB Play Blood On The Clocktower
+    // https://www.youtube.com/watch?v=m14N28Lq-jM
 
 }
