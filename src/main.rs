@@ -126,13 +126,10 @@ enum CompoundConstraint {
 
 
 fn expect(report_log : ReportLog) ->  CompoundConstraint {
-    use Character::GoodTownsfolk;
-    use Character::EvilMinion;
-    use Constraint::Is;
-    use Constraint::IsDrunk;
-    use Constraint::IsPoisoned;
+    use Character::*;
+    use Constraint::*;
     use CompoundConstraint::OneOf;
-    use Townsfolk::Washerwoman;
+    use Townsfolk::*;
 
     return match report_log {
         // Washerwoman
@@ -145,6 +142,26 @@ fn expect(report_log : ReportLog) ->  CompoundConstraint {
                 vec![IsPoisoned(washerwoman)],
                 vec![IsDrunk(washerwoman, GoodTownsfolk(Washerwoman))],
             ]),
+
+        ReportLog::OnTime(librarian, Log::LibrarianSees(a, b, outsider)) =>  OneOf(
+            vec![
+                vec![Is(librarian, GoodTownsfolk(Librarian)), Is(a, GoodOutsider(outsider))],
+                vec![Is(librarian, GoodTownsfolk(Librarian)), Is(b, GoodOutsider(outsider))],
+                vec![Is(librarian, GoodTownsfolk(Librarian)), Is(a, EvilMinion(Minion::Spy))],
+                vec![Is(librarian, GoodTownsfolk(Librarian)), Is(b, EvilMinion(Minion::Spy))],
+                vec![IsPoisoned(librarian)],
+                vec![IsDrunk(librarian, GoodTownsfolk(Librarian))],
+            ]),
+
+        ReportLog::OnTime(investigator, Log::InvestigatorSees(a, b, minion)) =>  OneOf(
+            vec![
+                vec![Is(investigator, GoodTownsfolk(Investigator)), Is(a, EvilMinion(minion))],
+                vec![Is(investigator, GoodTownsfolk(Investigator)), Is(b, EvilMinion(minion))],
+                vec![Is(investigator, GoodTownsfolk(Investigator)), Is(a, GoodOutsider(Outsider::Recluse))],
+                vec![Is(investigator, GoodTownsfolk(Investigator)), Is(b, GoodOutsider(Outsider::Recluse))],
+                vec![IsPoisoned(investigator)],
+                vec![IsDrunk(investigator, GoodTownsfolk(Investigator))],
+            ]),
         _ => todo!(),
     }
 }
@@ -155,6 +172,7 @@ mod tests {
     use super::*; // Import names from the outer scope
     use Character::*;
     use Townsfolk::*;
+    use Outsider::*;
     use Minion::*;
     use Player::*;
     use Constraint::*;
@@ -178,6 +196,41 @@ mod tests {
         assert_eq!(expect(reported), want);
     }
 
+    #[test]
+    fn test_expect_librarian_sees_foo_or_bar_as_drunk() {
+        let lib = Seat(1);
+        let foo = Seat(2);
+        let bar = Seat(3);
+
+        let reported = ReportLog::OnTime(lib, Log::LibrarianSees(foo, bar, Drunk));
+        let want = CompoundConstraint::OneOf(vec![
+             vec![Is(Seat(1), GoodTownsfolk(Librarian)), Is(Seat(2), GoodOutsider(Drunk))], 
+             vec![Is(Seat(1), GoodTownsfolk(Librarian)), Is(Seat(3), GoodOutsider(Drunk))], 
+             vec![Is(Seat(1), GoodTownsfolk(Librarian)), Is(Seat(2), EvilMinion(Spy))], 
+             vec![Is(Seat(1), GoodTownsfolk(Librarian)), Is(Seat(3), EvilMinion(Spy))], 
+             vec![IsPoisoned(Seat(1))], 
+             vec![IsDrunk(Seat(1), GoodTownsfolk(Librarian))],
+        ]);
+        assert_eq!(expect(reported), want);
+    }
+
+    #[test]
+    fn test_expect_investigator_sees_foo_or_bar_as_baron() {
+        let inv = Seat(1);
+        let foo = Seat(2);
+        let bar = Seat(3);
+
+        let reported = ReportLog::OnTime(inv, Log::InvestigatorSees(foo, bar, Baron));
+        let want = CompoundConstraint::OneOf(vec![
+             vec![Is(Seat(1), GoodTownsfolk(Investigator)), Is(Seat(2), EvilMinion(Baron))], 
+             vec![Is(Seat(1), GoodTownsfolk(Investigator)), Is(Seat(3), EvilMinion(Baron))], 
+             vec![Is(Seat(1), GoodTownsfolk(Investigator)), Is(Seat(2), GoodOutsider(Recluse))], 
+             vec![Is(Seat(1), GoodTownsfolk(Investigator)), Is(Seat(3), GoodOutsider(Recluse))], 
+             vec![IsPoisoned(Seat(1))], 
+             vec![IsDrunk(Seat(1), GoodTownsfolk(Investigator))],
+        ]);
+        assert_eq!(expect(reported), want);
+    }
     // TODO:
     // Live and Imp-Person | NRB Play Blood On The Clocktower
     // https://www.youtube.com/watch?v=m14N28Lq-jM
