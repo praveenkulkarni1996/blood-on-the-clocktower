@@ -216,6 +216,14 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
             vec![Is(ft, GoodTownsfolk(FortuneTeller)), Is(a, EvilDemon(Imp))],
             vec![Is(ft, GoodTownsfolk(FortuneTeller)), Is(b, EvilDemon(Imp))],
         ]),
+
+        ReportLog::OnTime(ut, Log::UndertakerSees(p, character)) => OneOf(vec![
+            vec![IsDrunk(ut, Undertaker)],
+            vec![Is(ut, GoodTownsfolk(Undertaker)), IsPoisoned(ut)],
+            vec![Is(ut, GoodTownsfolk(Undertaker)), Is(p, character)],
+            // TODO: Spy and Recluse
+        ]),
+
         _ => todo!(),
     };
 }
