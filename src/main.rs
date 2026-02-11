@@ -85,7 +85,7 @@ enum Log {
     InvestigatorSees(Player, Player, Minion), // https://wiki.bloodontheclocktower.com/Investigator
     Chef(i32),                                // https://wiki.bloodontheclocktower.com/Chef
     EmpathLearns(Player, Player, Info),       // https://wiki.bloodontheclocktower.com/Empath
-    FortuneTeller(Player, Player, bool), // https://wiki.bloodontheclocktower.com/Fortune_Teller
+    FortuneTellerLearns(Player, Player, bool), // https://wiki.bloodontheclocktower.com/Fortune_Teller
     UndertakerSees(Player, Character),
     MonkProtects(Player),
     Ravenkeeper(Player, Character),
@@ -115,7 +115,7 @@ fn main() {
     println!("Hello, world!");
     let alice = Player::Seat(1);
     let bob = Player::Seat(2);
-    let log = Log::FortuneTeller(alice, bob, true);
+    let log = Log::FortuneTellerLearns(alice, bob, true);
     println!("{:?}", &log);
 }
 
@@ -125,6 +125,7 @@ enum Constraint {
     Is(Player, Character),
     IsPoisoned(Player),
     IsDrunk(Player, Character),
+    IsRedHerring(Player),
 }
 
 #[allow(dead_code)]
@@ -138,6 +139,7 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
     use Character::*;
     use CompoundConstraint::OneOf;
     use Constraint::*;
+    use Demon::*;
     use Townsfolk::*;
 
     return match report_log {
@@ -204,6 +206,16 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
             vec![IsPoisoned(investigator)],
             vec![IsDrunk(investigator, GoodTownsfolk(Investigator))],
         ]),
+
+        // Fortune Teller True
+        ReportLog::OnTime(ft, Log::FortuneTellerLearns(a, b, true)) => OneOf(vec![
+            vec![IsDrunk(ft, GoodTownsfolk(FortuneTeller))],
+            vec![Is(ft, GoodTownsfolk(FortuneTeller)), IsPoisoned(ft)],
+            vec![Is(ft, GoodTownsfolk(FortuneTeller)), IsRedHerring(a)],
+            vec![Is(ft, GoodTownsfolk(FortuneTeller)), IsRedHerring(b)],
+            vec![Is(ft, GoodTownsfolk(FortuneTeller)), Is(a, EvilDemon(Imp))],
+            vec![Is(ft, GoodTownsfolk(FortuneTeller)), Is(b, EvilDemon(Imp))],
+        ]),
         _ => todo!(),
     };
 }
@@ -213,6 +225,7 @@ mod tests {
     use super::*; // Import names from the outer scope
     use Character::*;
     use Constraint::*;
+    use Demon::*;
     use Minion::*;
     use Outsider::*;
     use Player::*;
@@ -307,6 +320,40 @@ mod tests {
         ]);
         assert_eq!(expect(reported), want);
     }
+
+    #[test]
+    fn test_expect_fortune_teller_yes() {
+        let ft = Seat(1);
+        let foo = Seat(2);
+        let bar = Seat(3);
+
+        let reported = ReportLog::OnTime(ft, Log::FortuneTellerLearns(foo, bar, true));
+        let want = CompoundConstraint::OneOf(vec![
+            vec![IsDrunk(Seat(1), GoodTownsfolk(FortuneTeller))],
+            vec![
+                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
+                IsPoisoned(Seat(1)),
+            ],
+            vec![
+                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
+                IsRedHerring(Seat(2)),
+            ],
+            vec![
+                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
+                IsRedHerring(Seat(3)),
+            ],
+            vec![
+                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
+                Is(Seat(2), EvilDemon(Imp)),
+            ],
+            vec![
+                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
+                Is(Seat(3), EvilDemon(Imp)),
+            ],
+        ]);
+        assert_eq!(expect(reported), want);
+    }
+
     // TODO:
     // Live and Imp-Person | NRB Play Blood On The Clocktower
     // https://www.youtube.com/watch?v=m14N28Lq-jM
