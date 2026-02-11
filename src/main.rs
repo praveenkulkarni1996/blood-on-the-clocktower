@@ -124,7 +124,7 @@ fn main() {
 enum Constraint {
     Is(Player, Character),
     IsPoisoned(Player),
-    IsDrunk(Player, Character),
+    IsDrunk(Player, Townsfolk),
     IsRedHerring(Player),
 }
 
@@ -162,7 +162,7 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
                 Is(b, EvilMinion(Minion::Spy)),
             ],
             vec![IsPoisoned(washerwoman)],
-            vec![IsDrunk(washerwoman, GoodTownsfolk(Washerwoman))],
+            vec![IsDrunk(washerwoman, Washerwoman)],
         ]),
 
         ReportLog::OnTime(librarian, Log::LibrarianSees(a, b, outsider)) => OneOf(vec![
@@ -183,7 +183,7 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
                 Is(b, EvilMinion(Minion::Spy)),
             ],
             vec![IsPoisoned(librarian)],
-            vec![IsDrunk(librarian, GoodTownsfolk(Librarian))],
+            vec![IsDrunk(librarian, Librarian)],
         ]),
 
         ReportLog::OnTime(investigator, Log::InvestigatorSees(a, b, minion)) => OneOf(vec![
@@ -204,12 +204,12 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
                 Is(b, GoodOutsider(Outsider::Recluse)),
             ],
             vec![IsPoisoned(investigator)],
-            vec![IsDrunk(investigator, GoodTownsfolk(Investigator))],
+            vec![IsDrunk(investigator, Investigator)],
         ]),
 
         // Fortune Teller True
         ReportLog::OnTime(ft, Log::FortuneTellerLearns(a, b, true)) => OneOf(vec![
-            vec![IsDrunk(ft, GoodTownsfolk(FortuneTeller))],
+            vec![IsDrunk(ft, FortuneTeller)],
             vec![Is(ft, GoodTownsfolk(FortuneTeller)), IsPoisoned(ft)],
             vec![Is(ft, GoodTownsfolk(FortuneTeller)), IsRedHerring(a)],
             vec![Is(ft, GoodTownsfolk(FortuneTeller)), IsRedHerring(b)],
@@ -256,7 +256,7 @@ mod tests {
                 Is(Seat(3), EvilMinion(Spy)),
             ],
             vec![IsPoisoned(Seat(1))],
-            vec![IsDrunk(Seat(1), GoodTownsfolk(Washerwoman))],
+            vec![IsDrunk(Seat(1), Washerwoman)],
         ]);
         assert_eq!(expect(reported), want);
     }
@@ -286,7 +286,7 @@ mod tests {
                 Is(Seat(3), EvilMinion(Spy)),
             ],
             vec![IsPoisoned(Seat(1))],
-            vec![IsDrunk(Seat(1), GoodTownsfolk(Librarian))],
+            vec![IsDrunk(Seat(1), Librarian)],
         ]);
         assert_eq!(expect(reported), want);
     }
@@ -316,7 +316,7 @@ mod tests {
                 Is(Seat(3), GoodOutsider(Recluse)),
             ],
             vec![IsPoisoned(Seat(1))],
-            vec![IsDrunk(Seat(1), GoodTownsfolk(Investigator))],
+            vec![IsDrunk(Seat(1), Investigator)],
         ]);
         assert_eq!(expect(reported), want);
     }
@@ -329,7 +329,7 @@ mod tests {
 
         let reported = ReportLog::OnTime(ft, Log::FortuneTellerLearns(foo, bar, true));
         let want = CompoundConstraint::OneOf(vec![
-            vec![IsDrunk(Seat(1), GoodTownsfolk(FortuneTeller))],
+            vec![IsDrunk(Seat(1), FortuneTeller)],
             vec![
                 Is(Seat(1), GoodTownsfolk(FortuneTeller)),
                 IsPoisoned(Seat(1)),
