@@ -37,6 +37,20 @@ enum Outsider {
 
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Good {
+    Townsfolk(Townsfolk),
+    Outsider(Outsider),
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Evil {
+    Minion(Minion),
+    Demon(Demon),
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Minion {
     Baron,
     Poisoner,
@@ -53,10 +67,8 @@ enum Demon {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Character {
-    GoodTownsfolk(Townsfolk),
-    GoodOutsider(Outsider),
-    EvilMinion(Minion),
-    EvilDemon(Demon),
+    Good(Good),
+    Evil(Evil),
 }
 
 #[allow(dead_code)]
@@ -136,30 +148,37 @@ enum CompoundConstraint {
 }
 
 fn expect(report_log: ReportLog) -> CompoundConstraint {
+    use crate::Demon::*;
+    use crate::Minion::*;
+    use crate::Outsider::*;
+    use crate::Townsfolk::*;
+
+    use crate::Evil::{Demon, Minion};
+    use crate::Good::{Outsider, Townsfolk};
+
+    //
     use Character::*;
     use CompoundConstraint::OneOf;
     use Constraint::*;
-    use Demon::*;
-    use Townsfolk::*;
 
     return match report_log {
         // Washerwoman
         ReportLog::OnTime(washerwoman, Log::WasherwomanSees(a, b, townsfolk)) => OneOf(vec![
             vec![
-                Is(washerwoman, GoodTownsfolk(Washerwoman)),
-                Is(a, GoodTownsfolk(townsfolk)),
+                Is(washerwoman, Good(Townsfolk(Washerwoman))),
+                Is(a, Good(Townsfolk(townsfolk))),
             ],
             vec![
-                Is(washerwoman, GoodTownsfolk(Washerwoman)),
-                Is(b, GoodTownsfolk(townsfolk)),
+                Is(washerwoman, Good(Townsfolk(Washerwoman))),
+                Is(b, Good(Townsfolk(townsfolk))),
             ],
             vec![
-                Is(washerwoman, GoodTownsfolk(Washerwoman)),
-                Is(a, EvilMinion(Minion::Spy)),
+                Is(washerwoman, Good(Townsfolk(Washerwoman))),
+                Is(a, Evil(Minion(Spy))),
             ],
             vec![
-                Is(washerwoman, GoodTownsfolk(Washerwoman)),
-                Is(b, EvilMinion(Minion::Spy)),
+                Is(washerwoman, Good(Townsfolk(Washerwoman))),
+                Is(b, Evil(Minion(Spy))),
             ],
             vec![IsPoisoned(washerwoman)],
             vec![IsDrunk(washerwoman, Washerwoman)],
@@ -167,20 +186,20 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
 
         ReportLog::OnTime(librarian, Log::LibrarianSees(a, b, outsider)) => OneOf(vec![
             vec![
-                Is(librarian, GoodTownsfolk(Librarian)),
-                Is(a, GoodOutsider(outsider)),
+                Is(librarian, Good(Townsfolk(Librarian))),
+                Is(a, Good(Outsider(outsider))),
             ],
             vec![
-                Is(librarian, GoodTownsfolk(Librarian)),
-                Is(b, GoodOutsider(outsider)),
+                Is(librarian, Good(Townsfolk(Librarian))),
+                Is(b, Good(Outsider(outsider))),
             ],
             vec![
-                Is(librarian, GoodTownsfolk(Librarian)),
-                Is(a, EvilMinion(Minion::Spy)),
+                Is(librarian, Good(Townsfolk(Librarian))),
+                Is(a, Evil(Minion(Spy))),
             ],
             vec![
-                Is(librarian, GoodTownsfolk(Librarian)),
-                Is(b, EvilMinion(Minion::Spy)),
+                Is(librarian, Good(Townsfolk(Librarian))),
+                Is(b, Evil(Minion(Spy))),
             ],
             vec![IsPoisoned(librarian)],
             vec![IsDrunk(librarian, Librarian)],
@@ -188,20 +207,20 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
 
         ReportLog::OnTime(investigator, Log::InvestigatorSees(a, b, minion)) => OneOf(vec![
             vec![
-                Is(investigator, GoodTownsfolk(Investigator)),
-                Is(a, EvilMinion(minion)),
+                Is(investigator, Good(Townsfolk(Investigator))),
+                Is(a, Evil(Minion(minion))),
             ],
             vec![
-                Is(investigator, GoodTownsfolk(Investigator)),
-                Is(b, EvilMinion(minion)),
+                Is(investigator, Good(Townsfolk(Investigator))),
+                Is(b, Evil(Minion(minion))),
             ],
             vec![
-                Is(investigator, GoodTownsfolk(Investigator)),
-                Is(a, GoodOutsider(Outsider::Recluse)),
+                Is(investigator, Good(Townsfolk(Investigator))),
+                Is(a, Good(Outsider(Recluse))),
             ],
             vec![
-                Is(investigator, GoodTownsfolk(Investigator)),
-                Is(b, GoodOutsider(Outsider::Recluse)),
+                Is(investigator, Good(Townsfolk(Investigator))),
+                Is(b, Good(Outsider(Recluse))),
             ],
             vec![IsPoisoned(investigator)],
             vec![IsDrunk(investigator, Investigator)],
@@ -210,17 +229,23 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
         // Fortune Teller True
         ReportLog::OnTime(ft, Log::FortuneTellerLearns(a, b, true)) => OneOf(vec![
             vec![IsDrunk(ft, FortuneTeller)],
-            vec![Is(ft, GoodTownsfolk(FortuneTeller)), IsPoisoned(ft)],
-            vec![Is(ft, GoodTownsfolk(FortuneTeller)), IsRedHerring(a)],
-            vec![Is(ft, GoodTownsfolk(FortuneTeller)), IsRedHerring(b)],
-            vec![Is(ft, GoodTownsfolk(FortuneTeller)), Is(a, EvilDemon(Imp))],
-            vec![Is(ft, GoodTownsfolk(FortuneTeller)), Is(b, EvilDemon(Imp))],
+            vec![Is(ft, Good(Townsfolk(FortuneTeller))), IsPoisoned(ft)],
+            vec![Is(ft, Good(Townsfolk(FortuneTeller))), IsRedHerring(a)],
+            vec![Is(ft, Good(Townsfolk(FortuneTeller))), IsRedHerring(b)],
+            vec![
+                Is(ft, Good(Townsfolk(FortuneTeller))),
+                Is(a, Evil(Demon(Imp))),
+            ],
+            vec![
+                Is(ft, Good(Townsfolk(FortuneTeller))),
+                Is(b, Evil(Demon(Imp))),
+            ],
         ]),
 
         ReportLog::OnTime(ut, Log::UndertakerSees(p, character)) => OneOf(vec![
             vec![IsDrunk(ut, Undertaker)],
-            vec![Is(ut, GoodTownsfolk(Undertaker)), IsPoisoned(ut)],
-            vec![Is(ut, GoodTownsfolk(Undertaker)), Is(p, character)],
+            vec![Is(ut, Good(Townsfolk(Undertaker))), IsPoisoned(ut)],
+            vec![Is(ut, Good(Townsfolk(Undertaker))), Is(p, character)],
             // TODO: Spy and Recluse
         ]),
 
@@ -231,13 +256,16 @@ fn expect(report_log: ReportLog) -> CompoundConstraint {
 #[cfg(test)] // Only compiles when running 'cargo test'
 mod tests {
     use super::*; // Import names from the outer scope
+    use crate::Evil::{Demon, Minion};
+    use crate::Good::{Outsider, Townsfolk};
+    //
+    use crate::Demon::*;
+    use crate::Minion::*;
+    use crate::Outsider::*;
+    use crate::Townsfolk::*;
     use Character::*;
     use Constraint::*;
-    use Demon::*;
-    use Minion::*;
-    use Outsider::*;
     use Player::*;
-    use Townsfolk::*;
 
     #[test]
     fn test_expect_washerwoman_sees_foo_or_bar_as_empath() {
@@ -248,20 +276,20 @@ mod tests {
         let reported = ReportLog::OnTime(ww, Log::WasherwomanSees(foo, bar, Empath));
         let want = CompoundConstraint::OneOf(vec![
             vec![
-                Is(Seat(1), GoodTownsfolk(Washerwoman)),
-                Is(Seat(2), GoodTownsfolk(Empath)),
+                Is(Seat(1), Good(Townsfolk(Washerwoman))),
+                Is(Seat(2), Good(Townsfolk(Empath))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(Washerwoman)),
-                Is(Seat(3), GoodTownsfolk(Empath)),
+                Is(Seat(1), Good(Townsfolk(Washerwoman))),
+                Is(Seat(3), Good(Townsfolk(Empath))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(Washerwoman)),
-                Is(Seat(2), EvilMinion(Spy)),
+                Is(Seat(1), Good(Townsfolk(Washerwoman))),
+                Is(Seat(2), Evil(Minion(Spy))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(Washerwoman)),
-                Is(Seat(3), EvilMinion(Spy)),
+                Is(Seat(1), Good(Townsfolk(Washerwoman))),
+                Is(Seat(3), Evil(Minion(Spy))),
             ],
             vec![IsPoisoned(Seat(1))],
             vec![IsDrunk(Seat(1), Washerwoman)],
@@ -278,20 +306,20 @@ mod tests {
         let reported = ReportLog::OnTime(lib, Log::LibrarianSees(foo, bar, Drunk));
         let want = CompoundConstraint::OneOf(vec![
             vec![
-                Is(Seat(1), GoodTownsfolk(Librarian)),
-                Is(Seat(2), GoodOutsider(Drunk)),
+                Is(Seat(1), Good(Townsfolk(Librarian))),
+                Is(Seat(2), Good(Outsider(Drunk))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(Librarian)),
-                Is(Seat(3), GoodOutsider(Drunk)),
+                Is(Seat(1), Good(Townsfolk(Librarian))),
+                Is(Seat(3), Good(Outsider(Drunk))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(Librarian)),
-                Is(Seat(2), EvilMinion(Spy)),
+                Is(Seat(1), Good(Townsfolk(Librarian))),
+                Is(Seat(2), Evil(Minion(Spy))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(Librarian)),
-                Is(Seat(3), EvilMinion(Spy)),
+                Is(Seat(1), Good(Townsfolk(Librarian))),
+                Is(Seat(3), Evil(Minion(Spy))),
             ],
             vec![IsPoisoned(Seat(1))],
             vec![IsDrunk(Seat(1), Librarian)],
@@ -308,20 +336,20 @@ mod tests {
         let reported = ReportLog::OnTime(inv, Log::InvestigatorSees(foo, bar, Baron));
         let want = CompoundConstraint::OneOf(vec![
             vec![
-                Is(Seat(1), GoodTownsfolk(Investigator)),
-                Is(Seat(2), EvilMinion(Baron)),
+                Is(Seat(1), Good(Townsfolk(Investigator))),
+                Is(Seat(2), Evil(Minion(Baron))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(Investigator)),
-                Is(Seat(3), EvilMinion(Baron)),
+                Is(Seat(1), Good(Townsfolk(Investigator))),
+                Is(Seat(3), Evil(Minion(Baron))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(Investigator)),
-                Is(Seat(2), GoodOutsider(Recluse)),
+                Is(Seat(1), Good(Townsfolk(Investigator))),
+                Is(Seat(2), Good(Outsider(Recluse))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(Investigator)),
-                Is(Seat(3), GoodOutsider(Recluse)),
+                Is(Seat(1), Good(Townsfolk(Investigator))),
+                Is(Seat(3), Good(Outsider(Recluse))),
             ],
             vec![IsPoisoned(Seat(1))],
             vec![IsDrunk(Seat(1), Investigator)],
@@ -339,24 +367,24 @@ mod tests {
         let want = CompoundConstraint::OneOf(vec![
             vec![IsDrunk(Seat(1), FortuneTeller)],
             vec![
-                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
+                Is(Seat(1), Good(Townsfolk(FortuneTeller))),
                 IsPoisoned(Seat(1)),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
+                Is(Seat(1), Good(Townsfolk(FortuneTeller))),
                 IsRedHerring(Seat(2)),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
+                Is(Seat(1), Good(Townsfolk(FortuneTeller))),
                 IsRedHerring(Seat(3)),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
-                Is(Seat(2), EvilDemon(Imp)),
+                Is(Seat(1), Good(Townsfolk(FortuneTeller))),
+                Is(Seat(2), Evil(Demon(Imp))),
             ],
             vec![
-                Is(Seat(1), GoodTownsfolk(FortuneTeller)),
-                Is(Seat(3), EvilDemon(Imp)),
+                Is(Seat(1), Good(Townsfolk(FortuneTeller))),
+                Is(Seat(3), Evil(Demon(Imp))),
             ],
         ]);
         assert_eq!(expect(reported), want);
