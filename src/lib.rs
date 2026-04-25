@@ -80,7 +80,7 @@ pub enum Info {
 // Some of this might come out publicily.
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Log {
+pub enum Claim {
     WasherwomanSees(Player, Player, Townsfolk), // https://wiki.bloodontheclocktower.com/Washerwoman
     LibrarianSees(Player, Player, Outsider),    // https://wiki.bloodontheclocktower.com/Librarian
     InvestigatorSees(Player, Player, Minion), // https://wiki.bloodontheclocktower.com/Investigator
@@ -108,7 +108,7 @@ pub enum Log {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReportLog {
-    OnTime(Player, Log),
+    OnTime(Player, Claim),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -141,7 +141,7 @@ pub fn expect(report_log: ReportLog) -> CompoundConstraint {
 
     match report_log {
         // Washerwoman
-        ReportLog::OnTime(washerwoman, Log::WasherwomanSees(a, b, townsfolk)) => OneOf(vec![
+        ReportLog::OnTime(washerwoman, Claim::WasherwomanSees(a, b, townsfolk)) => OneOf(vec![
             vec![
                 Is(washerwoman, Good(Townsfolk(Washerwoman))),
                 Is(a, Good(Townsfolk(townsfolk))),
@@ -162,7 +162,7 @@ pub fn expect(report_log: ReportLog) -> CompoundConstraint {
             vec![IsDrunk(washerwoman, Washerwoman)],
         ]),
 
-        ReportLog::OnTime(librarian, Log::LibrarianSees(a, b, outsider)) => OneOf(vec![
+        ReportLog::OnTime(librarian, Claim::LibrarianSees(a, b, outsider)) => OneOf(vec![
             vec![
                 Is(librarian, Good(Townsfolk(Librarian))),
                 Is(a, Good(Outsider(outsider))),
@@ -183,7 +183,7 @@ pub fn expect(report_log: ReportLog) -> CompoundConstraint {
             vec![IsDrunk(librarian, Librarian)],
         ]),
 
-        ReportLog::OnTime(investigator, Log::InvestigatorSees(a, b, minion)) => OneOf(vec![
+        ReportLog::OnTime(investigator, Claim::InvestigatorSees(a, b, minion)) => OneOf(vec![
             vec![
                 Is(investigator, Good(Townsfolk(Investigator))),
                 Is(a, Evil(Minion(minion))),
@@ -205,7 +205,7 @@ pub fn expect(report_log: ReportLog) -> CompoundConstraint {
         ]),
 
         // Fortune Teller True
-        ReportLog::OnTime(ft, Log::FortuneTellerLearns(a, b, true)) => OneOf(vec![
+        ReportLog::OnTime(ft, Claim::FortuneTellerLearns(a, b, true)) => OneOf(vec![
             vec![IsDrunk(ft, FortuneTeller)],
             vec![Is(ft, Good(Townsfolk(FortuneTeller))), IsPoisoned(ft)],
             vec![Is(ft, Good(Townsfolk(FortuneTeller))), IsRedHerring(a)],
@@ -220,7 +220,7 @@ pub fn expect(report_log: ReportLog) -> CompoundConstraint {
             ],
         ]),
 
-        ReportLog::OnTime(ut, Log::UndertakerSees(p, character)) => OneOf(vec![
+        ReportLog::OnTime(ut, Claim::UndertakerSees(p, character)) => OneOf(vec![
             vec![IsDrunk(ut, Undertaker)],
             vec![Is(ut, Good(Townsfolk(Undertaker))), IsPoisoned(ut)],
             vec![Is(ut, Good(Townsfolk(Undertaker))), Is(p, character)],
@@ -250,7 +250,7 @@ mod tests {
         let foo = Seat(2);
         let bar = Seat(3);
 
-        let reported = ReportLog::OnTime(ww, Log::WasherwomanSees(foo, bar, Empath));
+        let reported = ReportLog::OnTime(ww, Claim::WasherwomanSees(foo, bar, Empath));
         let want = CompoundConstraint::OneOf(vec![
             vec![
                 Is(Seat(1), Good(Townsfolk(Washerwoman))),
@@ -280,7 +280,7 @@ mod tests {
         let foo = Seat(2);
         let bar = Seat(3);
 
-        let reported = ReportLog::OnTime(lib, Log::LibrarianSees(foo, bar, Drunk));
+        let reported = ReportLog::OnTime(lib, Claim::LibrarianSees(foo, bar, Drunk));
         let want = CompoundConstraint::OneOf(vec![
             vec![
                 Is(Seat(1), Good(Townsfolk(Librarian))),
@@ -310,7 +310,7 @@ mod tests {
         let foo = Seat(2);
         let bar = Seat(3);
 
-        let reported = ReportLog::OnTime(inv, Log::InvestigatorSees(foo, bar, Baron));
+        let reported = ReportLog::OnTime(inv, Claim::InvestigatorSees(foo, bar, Baron));
         let want = CompoundConstraint::OneOf(vec![
             vec![
                 Is(Seat(1), Good(Townsfolk(Investigator))),
@@ -340,7 +340,7 @@ mod tests {
         let foo = Seat(2);
         let bar = Seat(3);
 
-        let reported = ReportLog::OnTime(ft, Log::FortuneTellerLearns(foo, bar, true));
+        let reported = ReportLog::OnTime(ft, Claim::FortuneTellerLearns(foo, bar, true));
         let want = CompoundConstraint::OneOf(vec![
             vec![IsDrunk(Seat(1), FortuneTeller)],
             vec![
@@ -367,3 +367,4 @@ mod tests {
         assert_eq!(expect(reported), want);
     }
 }
+
