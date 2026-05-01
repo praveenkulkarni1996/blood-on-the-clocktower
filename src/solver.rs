@@ -57,6 +57,8 @@ fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
     }
 }
 
+/// Every character has at most one player.
+/// NOTE: When the Scarlet Woman / Imp-Starpass mechanic is implemented, this will need to be updated.
 fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
     for c in Character::iter() {
         let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), c));
