@@ -104,6 +104,42 @@ pub enum Info {
     Both,
 }
 
+/// Somewhat annoyingly, the Blood on the Clocktower has decided that it will
+/// follow a 1-indexed night naming convention, i.e. we have:
+/// Night-1, Day-1, Night-2, etc.
+#[derive(Debug, Clone, Hash)]
+pub enum Time {
+    Night(i32),
+    Day(i32),
+}
+
+impl Ord for Time {
+    /// The ordering is: Night(1) < Day(1) < Night(2) < Day(2) < ...
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        fn canonicalize(t: &Time) -> i32 {
+            match t {
+                Time::Night(x) => 2 * x,
+                Time::Day(x) => (2 * x) + 1,
+            }
+        }
+        return canonicalize(self).cmp(&canonicalize(other));
+    }
+}
+
+impl PartialEq for Time {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == std::cmp::Ordering::Equal
+    }
+}
+
+impl Eq for Time {}
+
+impl PartialOrd for Time {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 // This is the player visible log.
 // Some of this might come out publicily.
 

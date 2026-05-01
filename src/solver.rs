@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use z3::ast::Bool;
 use z3::{Context, Solver};
 
-use crate::Character;
 use crate::Player;
 use crate::Player::Seat;
+use crate::{Character, Time};
 
 struct Registry<'ctx> {
     context: &'ctx Context,
@@ -14,6 +14,15 @@ struct Registry<'ctx> {
 
     /// Boolean variables that track "Is player X character Y?"
     is_character: HashMap<(Player, Character), Bool>,
+
+    /// Boolean variables that track "Is player X alive at the start of time Y?"
+    is_alive: BTreeMap<Player, HashMap<Time, Bool>>,
+
+    /// Is player X poisoned at the start of time Y?
+    is_poisoned: BTreeMap<Player, HashMap<Time, Bool>>,
+
+    /// Is player X a red herring?
+    is_red_herring: HashMap<Player, Bool>,
 }
 
 impl<'ctx> Registry<'ctx> {
@@ -33,6 +42,11 @@ impl<'ctx> Registry<'ctx> {
             context,
             num_players: num_players.try_into().unwrap(),
             is_character: is,
+
+            // TODO: actually populate this.
+            is_alive: BTreeMap::new(),
+            is_poisoned: BTreeMap::new(),
+            is_red_herring: HashMap::new(),
         }
     }
 
