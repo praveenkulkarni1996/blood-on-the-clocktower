@@ -1,9 +1,8 @@
 use std::collections::HashMap;
-use std::ops::Not;
 use strum::EnumIter;
 use strum::IntoEnumIterator;
 
-use z3::ast::{Bool, Int};
+use z3::ast::Bool;
 use z3::{Context, Solver};
 
 // Internal representations of players and characters for the solver.
@@ -33,7 +32,7 @@ impl<'ctx> Registry<'ctx> {
         let mut is = HashMap::new();
         for p in InternalPlayer::iter() {
             for c in InternalChar::iter() {
-                let var_name = is.insert((p, c), Bool::new_const(format!("is_{:?}_{:?}", p, c)));
+                is.insert((p, c), Bool::new_const(format!("is_{:?}_{:?}", p, c)));
             }
         }
         Registry {
