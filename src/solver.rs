@@ -67,5 +67,7 @@ pub fn foo() {
 
     println!("{model:?}");
 
-    dbg!(Character::iter().collect::<Vec<_>>());
+    for c in Character::iter() {
+        println!("{:?}", c);
+    }
 }
