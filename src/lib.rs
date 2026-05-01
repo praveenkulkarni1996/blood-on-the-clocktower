@@ -3,7 +3,7 @@ use strum::{EnumIter, IntoEnumIterator};
 
 pub mod solver;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, EnumIter)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, EnumIter, Hash)]
 pub enum Player {
     Unresolved,
     Seat(i32),

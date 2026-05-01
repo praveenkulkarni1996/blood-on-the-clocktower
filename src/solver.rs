@@ -1,44 +1,43 @@
 use std::collections::HashMap;
-use strum::EnumIter;
-use strum::IntoEnumIterator;
 
-use z3::ast;
 use z3::ast::Bool;
 use z3::{Context, Solver};
 
 use crate::Character;
-
-// Internal representations of players and characters for the solver.
-#[derive(Hash, Debug, Copy, Clone, PartialEq, Eq, EnumIter)]
-enum InternalPlayer {
-    Adam,
-    Eve,
-}
+use crate::Player;
+use crate::Player::Seat;
 
 struct Registry<'ctx> {
     context: &'ctx Context,
 
+    num_players: i32,
+
     /// Boolean variables that track "Is player X character Y?"
-    is_character: HashMap<(InternalPlayer, Character), Bool>,
+    is_character: HashMap<(Player, Character), Bool>,
 }
 
 impl<'ctx> Registry<'ctx> {
     /// Create a new registry of variables for the given context.
-    pub fn new(context: &Context) -> Registry {
+    pub fn new(context: &Context, num_players: usize) -> Registry {
         let mut is = HashMap::new();
-        for p in InternalPlayer::iter() {
+        for seat in 0..num_players {
+            let player = Player::Seat(seat.try_into().unwrap());
             for c in Character::iter() {
-                is.insert((p, c), Bool::new_const(format!("is_{:?}_{:?}", p, c)));
+                is.insert(
+                    (player, c),
+                    Bool::new_const(format!("is_{:?}_{:?}", player, c)),
+                );
             }
         }
         Registry {
             context,
+            num_players: num_players.try_into().unwrap(),
             is_character: is,
         }
     }
 
     /// Get the variable that tracks "Is player X character Y?"
-    pub fn get(&self, p: InternalPlayer, c: Character) -> &Bool {
+    pub fn get(&self, p: Player, c: Character) -> &Bool {
         &self.is_character[&(p, c)]
     }
 }
@@ -46,13 +45,13 @@ impl<'ctx> Registry<'ctx> {
 /// Every player has exactly one character.
 /// TODO(proof): We have not yet modelled starpassing or ScarletWoman.
 fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
-    for p in InternalPlayer::iter() {
+    for seat in 0..registry.num_players {
         {
-            let _characters = Character::iter().map(|c| registry.get(p, c));
+            let _characters = Character::iter().map(|c| registry.get(Seat(seat), c));
             solver.assert(z3::ast::atleast(_characters, 1));
         }
         {
-            let _characters = Character::iter().map(|c| registry.get(p, c));
+            let _characters = Character::iter().map(|c| registry.get(Seat(seat), c));
             solver.assert(z3::ast::atmost(_characters, 1));
         }
     }
@@ -60,7 +59,7 @@ fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
 
 fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
     for c in Character::iter() {
-        let _players = InternalPlayer::iter().map(|p| registry.get(p, c));
+        let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), c));
         solver.assert(z3::ast::atmost(_players, 1));
     }
 }
@@ -68,19 +67,14 @@ fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
 pub fn foo() {
     let solver = Solver::new();
 
-    let registry = Registry::new(&solver.get_context());
+    let registry = Registry::new(&solver.get_context(), 3);
 
     use crate::{Good, Townsfolk};
     let adam_investigator: &Bool = registry.get(
-        InternalPlayer::Adam,
-        Character::Good(Good::Townsfolk(Townsfolk::Investigator)),
-    );
-    let eve_investigator: &Bool = registry.get(
-        InternalPlayer::Eve,
+        Player::Seat(0),
         Character::Good(Good::Townsfolk(Townsfolk::Investigator)),
     );
     solver.assert(adam_investigator);
-
     player_has_exactly_one_character(&solver, &registry);
     character_has_at_most_one_player(&solver, &registry);
 
