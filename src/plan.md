@@ -6,80 +6,101 @@ This document outlines the strategy for modeling the "Trouble Brewing" edition o
 
 ## 1. Core Variables
 
-For each player $p \in P$ and each character $c \in C$:
-
--   **`X[p][c]`**: Boolean variable. True if player $p$ is character $c$.
+### Static Variables (Fixed during setup)
+-   **`Is[p][c]`**: Boolean variable. True if player $p$ is character $c$.
+    -   *Note: Includes 13 Townsfolk, 3 "normal" Outsiders (Butler, Saint, Recluse), 4 Minions, 1 Demon, and **13 Drunk-Townsfolk** (e.g., `Drunk_Slayer`).*
 -   **`Good[p]`**: True if player $p$ is on the Good team.
-    -   `Good[p]` $\iff \bigvee_{c \in GoodCharacters}$ `X[p][c]`
 -   **`Evil[p]`**: True if player $p$ is on the Evil team.
-    -   `Evil[p]` $\iff \bigvee_{c \in EvilCharacters}$ `X[p][c]`
--   **`Healthy[p]`**: True if player $p$ is not poisoned or drunk.
-    -   This is a dynamic state that depends on other variables (e.g., Poisoner's target, being the Drunk).
+
+### Temporal Variables (Indexed by time $t$)
+Time $t$ follows the sequence: $N_1$ (Night 1), $D_1$ (Day 1), $N_2$ (Night 2), $D_2$ (Day 2)...
+
+-   **`Poisoned[p][t]`**: True if player $p$ is currently poisoned (e.g., by the Poisoner).
+-   **`Alive[p][t]`**: True if player $p$ is alive at time $t$.
+-   **`Executed[p][t]`**: True if player $p$ is executed at time $t$.
 
 ## 2. Global Constraints
 
 ### Unique Role
-Each player must have exactly one role:
-$$\forall p \in P, \sum_{c \in C} X[p][c] = 1$$
+$$\forall p \in P, \sum_{c \in C} Is[p][c] = 1$$
+
+### Role Properties
+-   **Outsiders**: $Is[p][c]$ where $c \in \{Saint, Butler, Recluse, Drunk\_T_1, \dots, Drunk\_T_{13}\}$.
+-   **Drunk Status**: If $Is[p][Drunk\_T]$, the player is functionally identical to a poisoned Townsfolk $T$.
+
+### Poisoning (The Poisoner)
+If player $p$ is the Poisoner and is not poisoned at $N_n$, and chooses $target$:
+$$(Is[p][Poisoner] \land \neg Poisoned[p][N_n] \land PoisonerChoice[p][N_n] == target) \implies (Poisoned[target][N_n] \land Poisoned[target][D_n])$$
 
 ### Role Distribution (Setup)
 The number of players in each category must match the game setup based on the total player count $N$. The **Baron** modifies this by replacing 2 Townsfolk with 2 Outsiders.
 
-Let $B = \sum_{p \in P} X[p][Baron]$ (which is either 0 or 1).
--   $\sum_{p \in P} \sum_{c \in Townsfolk} X[p][c] = CountTownsfolk(N) - 2B$
--   $\sum_{p \in P} \sum_{c \in Outsider} X[p][c] = CountOutsider(N) + 2B$
--   $\sum_{p \in P} \sum_{c \in Minion} X[p][c] = CountMinion(N)$
--   $\sum_{p \in P} \sum_{c \in Demon} X[p][c] = 1$
+Let $B = \sum_{p \in P} Is[p][Baron]$.
+-   $\sum_{p \in P} \sum_{c \in Townsfolk} Is[p][c] = CountTownsfolk(N) - 2B$
+-   $\sum_{p \in P} \sum_{c \in Outsider} Is[p][c] = CountOutsider(N) + 2B$
+-   $\sum_{p \in P} \sum_{c \in Minion} Is[p][c] = CountMinion(N)$
+-   $\sum_{p \in P} \sum_{c \in Demon} Is[p][c] = 1$
 
 ## 3. Modeling Character Logic
 
-Claims made by players are only guaranteed to be true if the player is **Good** and **Healthy**.
+Claims are made at a specific time $t$. Information is only binding if the player is the **Real Townsfolk** and **Not Poisoned**.
 
-### Investigator Example
-"The Investigator ($p$) claims that either Adam ($a$) or Eve ($e$) is the Poisoner ($M$)."
+### Universal Claim Logic
+If player $p$ claims to be Townsfolk $T$ and reports information $I$ at time $t$:
+$$(Is[p][T] \land \neg Poisoned[p][t]) \implies I$$
 
-If we assume player $p$ is the Investigator and is healthy:
-$$(X[p][Investigator] \land Healthy[p]) \implies (X[a][M] \lor X[e][M] \lor X[a][Recluse] \lor X[e][Recluse])$$
-*(Note: Recluse can register as a Minion)*
+### Townsfolk
 
-### Washerwoman Example
-"The Washerwoman ($p$) claims that either Alice ($a$) or Bob ($b$) is the Empath ($T$)."
-$$(X[p][Washerwoman] \land Healthy[p]) \implies (X[a][T] \lor X[b][T] \lor X[a][Spy] \lor X[b][Spy])$$
-*(Note: Spy can register as Townsfolk)*
+-   **Washerwoman** (Claim at $N_1$):
+    $$(Is[p][Washerwoman] \land \neg Poisoned[p][N_1]) \implies (Is[a][T] \lor Is[b][T] \lor Is[a][Spy] \lor Is[b][Spy])$$
+-   **Librarian** (Claim at $N_1$):
+    $$(Is[p][Librarian] \land \neg Poisoned[p][N_1]) \implies (Is[a][O] \lor Is[b][O] \lor Is[a][Spy] \lor Is[b][Spy])$$
+-   **Investigator** (Claim at $N_1$):
+    $$(Is[p][Investigator] \land \neg Poisoned[p][N_1]) \implies (Is[a][M] \lor Is[e][M] \lor Is[a][Recluse] \lor Is[e][Recluse])$$
+-   **Chef** (Claim at $N_1$):
+    $$(Is[p][Chef] \land \neg Poisoned[p][N_1]) \implies \text{CountPairs}(Evil) = N$$
+-   **Empath** (Claim at $N_n$):
+    $$(Is[p][Empath] \land \neg Poisoned[p][N_n]) \implies \sum_{n \in Neighbors(p, N_n)} (Evil[n] \lor RegisterEvil[n]) = N$$
+-   **Fortune Teller** (Claim at $N_n$):
+    $$(Is[p][FortuneTeller] \land \neg Poisoned[p][N_n]) \implies (Y \iff (Evil[a] \lor Evil[b] \lor RedHerring[a] \lor RedHerring[b]))$$
+-   **Undertaker** (Claim at $N_n$ about execution at $D_{n-1}$):
+    $$(Is[p][Undertaker] \land \neg Poisoned[p][N_n] \land Executed[a][D_{n-1}]) \implies (TrueCharacter(Is[a]) == C \lor RegisterAs[a][C])$$
+    *(Note: $TrueCharacter(Drunk\_T) = Drunk$)*
+-   **Virgin** (Day $n$):
+    $$(Is[p][Virgin] \land \neg Poisoned[p][D_n] \land NominatedBy[p][a][D_n] \land Is[a][Townsfolk]) \implies Executed[a][D_n]$$
+-   **Slayer** (Day $n$):
+    $$(Is[p][Slayer] \land \neg Poisoned[p][D_n] \land Shoots[p][a][D_n] \land Is[a][Demon]) \implies \neg Alive[a][D_n+1]$$
+-   **Soldier**:
+    $$\forall n, Is[p][Soldier] \implies \neg (ImpKills[p][N_n])$$
 
-### Chef Example
-"The Chef ($p$) claims they see $N$ pairs of evil players."
-$$(X[p][Chef] \land Healthy[p]) \implies \text{CountPairs}(Evil) = N$$
+### Outsiders
 
-## 4. Drunkenness and Poisoning
+-   **Recluse**:
+    -   $Is[p][Recluse] \implies (RegisterEvil[p] \lor RegisterMinion[p] \lor RegisterDemon[p])$
+-   **Saint**:
+    -   $(Is[p][Saint] \land Executed(p)) \implies EvilWins$
 
--   **The Drunk (Outsider)**: Thinks they are a Townsfolk.
-    -   If `X[p][Drunk]`, then `Healthy[p]` is False.
-    -   $p$ will believe they are some $c \in Townsfolk$.
--   **Poisoner**:
-    -   If `X[p][Poisoner]` and $p$ poisons $target$, then `Healthy[target]` is False for that duration.
+### Minions
 
-## 5. Proposed Implementation Steps
+-   **Poisoner**: 
+    -   See Section 2 for core logic.
+-   **Spy**:
+    -   $Is[p][Spy] \implies (RegisterGood[p] \lor RegisterTownsfolk[p])$
+    -   Sees the Grimoire (Knows all `Is[i][j]`).
 
-1.  **Variable Registry**: Create a system to map `X[p][c]` pairs and auxiliary states (like `Healthy[p]`) to unique integer IDs for a SAT solver (e.g., `varisat`).
-2.  **Constraint Generator**:
-    -   Implement "At Least One" and "Exactly One" constraints using CNF.
-    -   Translate the high-level `Claim` enum and `CompoundConstraint` structures into SAT clauses.
-3.  **Solver Integration**:
-    -   Feed generated clauses into the solver.
-    -   Provide methods to query if a specific $(p, c)$ assignment is possible.
-4.  **Refining "Healthy"**:
-    -   Model night-by-night interactions to track the $Healthy$ state accurately, especially for the Poisoner and characters like the Virgin or Monk.
+## 4. Proposed Implementation Steps
 
-## 6. Goal
+1.  **Variable Registry**: Map `Is[p][c]` (including Drunk variants) and temporal states (`Poisoned[p][t]`) to SAT IDs.
+2.  **Constraint Generator**: Implement "Exactly One" for roles and translate the "Binding" logic into clauses.
+3.  **Solver Integration**: Use Z3 to handle counting constraints (Chef, Empath, Role Distribution) natively.
+
+## 5. Goal
 The final system should allow us to add "ReportLogs" (Claims) and then ask the solver:
 -   "Is it possible that Adam is the Imp?"
 -   "Given these claims, who are the guaranteed Good players?"
 -   "List all possible game states (assignments of characters to players)."
 
 ## Appendix A: Character Distribution
-
-The following table shows the standard character distribution based on the number of players ($N$).
 
 | Players | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 | :--- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
