@@ -17,7 +17,7 @@ fn setup_game() {
     let dom = Player::Seat(9); // Mayor
     let blair = Player::Seat(10); // Imp
 
-    let logs = vec![
+    let logs: Vec<ReportLog> = vec![
         // NIGHT-1
         // 1. Sullivan (Poisoner) selects a player to neutralize.
         ReportLog::OnTime(sullivan, Claim::PoisonerPoisons(isaac)),
