@@ -1,3 +1,4 @@
+use botc::Time::*;
 use botc::*;
 
 #[allow(unused_variables)]
@@ -19,52 +20,56 @@ fn setup_game() {
 
     let logs: Vec<ReportLog> = vec![
         // NIGHT-1
-        // 1. Sullivan (Poisoner) selects a player to neutralize.
-        ReportLog::OnTime(sullivan, Claim::PoisonerPoisons(isaac)),
-        // 2. Adam (Chef) learns how many pairs of evil players are sitting next to each other.
+        // Sullivan (Poisoner) selects a player to neutralize.
+        ReportLog::OnTime(Night(1), sullivan, Claim::PoisonerPoisons(isaac)),
+        // Adam (Chef) learns how many pairs of evil players are sitting next to each other.
         // Could learn both 1 or 2.
-        ReportLog::OnTime(adam, Claim::Chef(1)),
+        ReportLog::OnTime(Night(1), adam, Claim::ChefGets(1)),
         // 3. John (Librarian) learns that either Adam or Laurie is the Recluse.
-        ReportLog::OnTime(john, Claim::LibrarianSees(adam, laurie, Outsider::Recluse)),
+        ReportLog::OnTime(
+            Night(1),
+            john,
+            Claim::LibrarianSees(adam, laurie, Outsider::Recluse),
+        ),
         // 4. Carly (Fortune Teller) selects herself and another player.
         // She receives a "Yes" because she is her own Red Herring.
-        ReportLog::OnTime(carly, Claim::FortuneTellerLearns(adam, laurie, true)),
+        ReportLog::OnTime(Night(1), carly, Claim::FortuneTellerYes(adam, laurie)),
         // 5. Brooke (Drunk) believes she is the Undertaker.
         // 6. Blair (Imp) learns her Minions (Ollie, Sullivan) and Demon Bluffs (Investigator, Empath, Saint).
 
         // DAY-1
         // Laurie (the Recluse) is executed.
-        ReportLog::OnTime(Player::Unresolved, Claim::Executes(laurie)),
+        ReportLog::Executes(Day(1), laurie),
         // NIGHT-2
         // 1. Sullivan (Poisoner) poisons Isaac (the Monk).
-        ReportLog::OnTime(sullivan, Claim::PoisonerPoisons(isaac)),
+        ReportLog::OnTime(Night(2), sullivan, Claim::PoisonerPoisons(isaac)),
         // 2. Isaac (Monk) protects Carly (the Fortune Teller). (Invalidated by poison)
-        ReportLog::OnTime(isaac, Claim::MonkProtects(carly)),
+        // ReportLog::OnTime(Night(2), isaac, Claim::MonkProtects(carly)),
         // 3. Carly (Fortune Teller) selects herself and Dom. (Yes - Red Herring)
-        ReportLog::OnTime(carly, Claim::FortuneTellerLearns(carly, dom, true)),
+        ReportLog::OnTime(Night(2), carly, Claim::FortuneTellerYes(carly, dom)),
         // 4. Blair (Imp) kills John (the Librarian).
-        ReportLog::OnTime(blair, Claim::ImpKills(john)),
+        ReportLog::OnTime(Night(2), blair, Claim::ImpKills(john)),
         // 5. Brooke (Undertaker - Drunk) sees Laurie as the Recluse. (Truth)
         ReportLog::OnTime(
+            Night(2),
             brooke,
             Claim::UndertakerSees(laurie, Character::Good(Good::Outsider(Outsider::Recluse))),
         ),
         // DAY-2
         // Adam (the Chef) is nominated and executed.
-        ReportLog::OnTime(Player::Unresolved, Claim::Executes(adam)),
+        ReportLog::Executes(Day(2), adam),
         // NIGHT-3
         // 1. Sullivan (Poisoner) poisons Carly (the Fortune Teller). (Disables Red Herring)
-        ReportLog::OnTime(sullivan, Claim::PoisonerPoisons(carly)),
+        ReportLog::OnTime(Day(2), sullivan, Claim::PoisonerPoisons(carly)),
         // 2. Isaac (Monk) protects Adam. (Wait, Adam is dead - protecting a corpse/sinking kill?)
         // In the game, Isaac protected someone, but Blair killed Brooke.
-        ReportLog::OnTime(isaac, Claim::MonkProtects(adam)),
         // 3. Carly (Fortune Teller) selects herself and Dom. (No - Poisoned)
-        ReportLog::OnTime(carly, Claim::FortuneTellerLearns(carly, dom, false)),
+        ReportLog::OnTime(Night(3), carly, Claim::FortuneTellerNo(carly, dom)),
         // 4. Blair (Imp) kills Brooke (the Drunk).
-        ReportLog::OnTime(blair, Claim::ImpKills(brooke)),
+        ReportLog::OnTime(Night(3), blair, Claim::ImpKills(brooke)),
         // DAY-3
         // Isaac (the Monk) is nominated and executed.
-        ReportLog::OnTime(Player::Unresolved, Claim::Executes(isaac)),
+        ReportLog::Executes(Day(3), isaac),
         // NIGHT-4
         // The Final Five (Blair, Sullivan, Ollie, Carly, Dom) remain.
         // There were no deaths this night.
@@ -72,25 +77,20 @@ fn setup_game() {
         // DAY-4
         // Carly (the Fortune Teller) is executed.
         // Result: Leaving only 4 alive (Blair, Sullivan, Ollie, Dom).
-        ReportLog::OnTime(Player::Unresolved, Claim::Executes(carly)),
+        ReportLog::Executes(Day(4), carly),
         // NIGHT-5
         // 1. Sullivan (Poisoner) poisons Dom (the Mayor).
         // Consequence: Disables the "bounce" safety net.
-        ReportLog::OnTime(sullivan, Claim::PoisonerPoisons(dom)),
+        ReportLog::OnTime(Night(5), sullivan, Claim::PoisonerPoisons(dom)),
         // 2. Blair (Imp) kills Dom (the Mayor).
         // Result: Dom dies, leaving only the 3 Evil players.
-        ReportLog::OnTime(blair, Claim::ImpKills(dom)),
+        ReportLog::OnTime(Night(5), blair, Claim::ImpKills(dom)),
     ];
 
     dbg!(logs);
 }
 
 fn main() {
-    println!("Hello, world!");
-    let alice = Player::Seat(1);
-    let bob = Player::Seat(2);
-    let log = Claim::FortuneTellerLearns(alice, bob, true);
-    println!("{:?}", &log);
     setup_game();
     solver::foo();
 }

@@ -148,21 +148,19 @@ pub enum Claim {
     WasherwomanSees(Player, Player, Townsfolk), // https://wiki.bloodontheclocktower.com/Washerwoman
     LibrarianSees(Player, Player, Outsider),    // https://wiki.bloodontheclocktower.com/Librarian
     InvestigatorSees(Player, Player, Minion), // https://wiki.bloodontheclocktower.com/Investigator
-    Chef(i32),                                // https://wiki.bloodontheclocktower.com/Chef
+    ChefGets(i32),                            // https://wiki.bloodontheclocktower.com/Chef
     EmpathLearns(Player, Player, Info),       // https://wiki.bloodontheclocktower.com/Empath
-    FortuneTellerLearns(Player, Player, bool), // https://wiki.bloodontheclocktower.com/Fortune_Teller
+    FortuneTellerYes(Player, Player), // https://wiki.bloodontheclocktower.com/Fortune_Teller
+    FortuneTellerNo(Player, Player),  // https://wiki.bloodontheclocktower.com/Fortune_Teller
     UndertakerSees(Player, Character),
-    MonkProtects(Player),
+    MonkClaims(),
     Ravenkeeper(Player, Character),
     VirginIsNominatedBy(Player, LiveOrDie), // Virgin is nominated by `Player`, and might LiveOrDie
     SlayerShoots(Player, LiveOrDie),        // Slayer shoots the `Player` who will LiveOrDie
 
-    // Events that happen.
-    Executes(Player),
-    DiesAtNight(Player),
-
     // TODO: It might be worth it to take a good look at minion events.
     // In particular, I think most of these might not be very useful.
+    // These are primarily there for debugging purposes.
     PoisonerPoisons(Player),
     Baron,
     ScarletWomanDemonizes,
@@ -172,5 +170,7 @@ pub enum Claim {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReportLog {
-    OnTime(Player, Claim),
+    OnTime(Time, Player, Claim),
+    Executes(Time, Player),
+    DiesAtNight(Time, Player),
 }
