@@ -115,6 +115,29 @@ pub fn constrain(r: &Registry, history: &Vec<ReportLog>, log: &ReportLog) -> z3:
             )
         }
 
+        // Investigator |alpha| sees that either |bravo| OR |charlie| is the Minion |minion|.
+        OnTime(t, alpha, InvestigatorSees(bravo, charlie, minion)) => {
+            let alpha_is_investigator = r.get(*alpha, Good(Townsfolk(Investigator)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+
+            let bravo_is_correct = r.get(*bravo, Evil(Minion(*minion)));
+            let charlie_is_correct = r.get(*charlie, Evil(Minion(*minion)));
+
+            let bravo_is_sober_recluse =
+                r.get(*bravo, Good(Outsider(Recluse))) & r.is_poisoned[&bravo][&t].not();
+            let charlie_is_sober_recluse =
+                r.get(*charlie, Good(Outsider(Recluse))) & r.is_poisoned[&charlie][&t].not();
+
+            (alpha_is_investigator & !alpha_is_poisoned).implies(
+                alpha_is_drunk
+                    | bravo_is_correct
+                    | charlie_is_correct
+                    | bravo_is_sober_recluse
+                    | charlie_is_sober_recluse,
+            )
+        }
+
         _ => todo!(), // TODO: implement the rest of the claim types.
     }
 }
