@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use strum::EnumIter;
 use strum::IntoEnumIterator;
 
+use z3::ast;
 use z3::ast::Bool;
 use z3::{Context, Solver};
 
@@ -42,6 +43,28 @@ impl<'ctx> Registry<'ctx> {
     }
 }
 
+/// Every player has exactly one character.
+/// TODO(proof): We have not yet modelled starpassing or ScarletWoman.
+fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
+    for p in InternalPlayer::iter() {
+        {
+            let _characters = Character::iter().map(|c| registry.get(p, c));
+            solver.assert(z3::ast::atleast(_characters, 1));
+        }
+        {
+            let _characters = Character::iter().map(|c| registry.get(p, c));
+            solver.assert(z3::ast::atmost(_characters, 1));
+        }
+    }
+}
+
+fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
+    for c in Character::iter() {
+        let _players = InternalPlayer::iter().map(|p| registry.get(p, c));
+        solver.assert(z3::ast::atmost(_players, 1));
+    }
+}
+
 pub fn foo() {
     let solver = Solver::new();
 
@@ -58,8 +81,8 @@ pub fn foo() {
     );
     solver.assert(adam_investigator);
 
-    // Adam as Investigator IMPLIES Eve is NOT the Investigator
-    solver.assert(&adam_investigator.implies(&eve_investigator.not()));
+    player_has_exactly_one_character(&solver, &registry);
+    character_has_at_most_one_player(&solver, &registry);
 
     // run the solver
     _ = solver.check();
