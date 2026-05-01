@@ -1,0 +1,9 @@
+[env]
+# Tell z3-sys where to find the library
+Z3_LIBRARY_PATH_OVERRIDE = "/opt/homebrew/lib"
+
+# Explicitly point to the header (this often fixes detection issues on macOS)
+Z3_SYS_Z3_HEADER = "/opt/homebrew/include/z3.h"
+
+# Optional: Also help pkg-config (in case the build script falls back to it)
+PKG_CONFIG_PATH = "/opt/homebrew/lib/pkgconfig"

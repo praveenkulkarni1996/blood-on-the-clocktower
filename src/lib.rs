@@ -1,6 +1,8 @@
 /// This is only supporting Trouble Brewing.
 use strum::EnumIter;
 
+pub mod solver;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Player {
     Unresolved,
@@ -224,10 +226,15 @@ pub fn expect(report_log: ReportLog) -> CompoundConstraint {
             vec![IsDrunk(ut, Undertaker)],
             vec![Is(ut, Good(Townsfolk(Undertaker))), IsPoisoned(ut)],
             vec![Is(ut, Good(Townsfolk(Undertaker))), Is(p, character)],
-            // TODO: Spy and Recluse
+            // TODO: Spy and Recluse can register falsely, but Is(p, character) might be enough if character is what they registered as.
         ]),
 
-        _ => todo!(),
+        ReportLog::OnTime(_, Claim::Executes(_)) => CompoundConstraint::AllOf(vec![]), // Execution is an event, doesn't directly constrain roles unless we have more logic.
+        ReportLog::OnTime(_, Claim::PoisonerPoisons(_)) => CompoundConstraint::AllOf(vec![]),
+        ReportLog::OnTime(_, Claim::ImpKills(_)) => CompoundConstraint::AllOf(vec![]),
+        ReportLog::OnTime(_, Claim::MonkProtects(_)) => CompoundConstraint::AllOf(vec![]),
+
+        _ => CompoundConstraint::AllOf(vec![]),
     }
 }
 
