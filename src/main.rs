@@ -91,6 +91,6 @@ fn main() {
     let bob = Player::Seat(2);
     let log = Claim::FortuneTellerLearns(alice, bob, true);
     println!("{:?}", &log);
-    solver::foo();
     setup_game();
+    solver::foo();
 }

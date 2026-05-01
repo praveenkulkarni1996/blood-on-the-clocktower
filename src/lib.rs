@@ -3,7 +3,7 @@ use strum::EnumIter;
 
 pub mod solver;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, EnumIter)]
 pub enum Player {
     Unresolved,
     Seat(i32),
@@ -241,9 +241,9 @@ pub fn expect(report_log: ReportLog) -> CompoundConstraint {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Demon::*;
     use crate::Evil::{Demon, Minion};
     use crate::Good::{Outsider, Townsfolk};
-    use crate::Demon::*;
     use crate::Minion::*;
     use crate::Outsider::*;
     use crate::Townsfolk::*;
@@ -374,4 +374,3 @@ mod tests {
         assert_eq!(expect(reported), want);
     }
 }
-
