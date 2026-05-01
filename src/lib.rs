@@ -1,5 +1,5 @@
 /// This is only supporting Trouble Brewing.
-use strum::EnumIter;
+use strum::{EnumIter, IntoEnumIterator};
 
 pub mod solver;
 
@@ -9,7 +9,7 @@ pub enum Player {
     Seat(i32),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, EnumIter)]
+#[derive(EnumIter, Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Townsfolk {
     Washerwoman,
     Librarian,
@@ -26,7 +26,7 @@ pub enum Townsfolk {
     Mayor,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, EnumIter)]
 pub enum Outsider {
     Butler,
     Saint,
@@ -34,19 +34,19 @@ pub enum Outsider {
     Drunk,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Good {
     Townsfolk(Townsfolk),
     Outsider(Outsider),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Evil {
     Minion(Minion),
     Demon(Demon),
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, EnumIter)]
 pub enum Minion {
     Baron,
     Poisoner,
@@ -54,15 +54,41 @@ pub enum Minion {
     Spy,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, EnumIter)]
 pub enum Demon {
     Imp,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Character {
     Good(Good),
     Evil(Evil),
+}
+
+impl Good {
+    pub fn iter() -> impl Iterator<Item = Self> {
+        Townsfolk::iter()
+            .map(Good::Townsfolk)
+            .chain(Outsider::iter().map(Good::Outsider))
+    }
+}
+
+impl Evil {
+    pub fn iter() -> impl Iterator<Item = Self> {
+        Minion::iter()
+            .map(Evil::Minion)
+            .chain(Demon::iter().map(Evil::Demon))
+    }
+}
+
+impl Character {
+    pub fn iter() -> impl Iterator<Item = Self> {
+        Townsfolk::iter()
+            .map(|t| Character::Good(Good::Townsfolk(t)))
+            .chain(Outsider::iter().map(|o| Character::Good(Good::Outsider(o))))
+            .chain(Minion::iter().map(|m| Character::Evil(Evil::Minion(m))))
+            .chain(Demon::iter().map(|d| Character::Evil(Evil::Demon(d))))
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
