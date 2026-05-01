@@ -51,34 +51,32 @@ $$(Is[p][T] \land \neg Poisoned[p][t]) \implies I$$
 
 ### Townsfolk
 
--   **Washerwoman** (Claim at $N_1$):
-    $$(Is[p][Washerwoman] \land \neg Poisoned[p][N_1]) \implies (Is[a][T] \lor Is[b][T] \lor Is[a][Spy] \lor Is[b][Spy])$$
--   **Librarian** (Claim at $N_1$):
-    $$(Is[p][Librarian] \land \neg Poisoned[p][N_1]) \implies (Is[a][O] \lor Is[b][O] \lor Is[a][Spy] \lor Is[b][Spy])$$
--   **Investigator** (Claim at $N_1$):
-    $$(Is[p][Investigator] \land \neg Poisoned[p][N_1]) \implies (Is[a][M] \lor Is[e][M] \lor Is[a][Recluse] \lor Is[e][Recluse])$$
--   **Chef** (Claim at $N_1$):
-    $$(Is[p][Chef] \land \neg Poisoned[p][N_1]) \implies \text{CountPairs}(Evil) = N$$
--   **Empath** (Claim at $N_n$):
-    $$(Is[p][Empath] \land \neg Poisoned[p][N_n]) \implies \sum_{n \in Neighbors(p, N_n)} (Evil[n] \lor RegisterEvil[n]) = N$$
--   **Fortune Teller** (Claim at $N_n$):
-    $$(Is[p][FortuneTeller] \land \neg Poisoned[p][N_n]) \implies (Y \iff (Evil[a] \lor Evil[b] \lor RedHerring[a] \lor RedHerring[b]))$$
--   **Undertaker** (Claim at $N_n$ about execution at $D_{n-1}$):
-    $$(Is[p][Undertaker] \land \neg Poisoned[p][N_n] \land Executed[a][D_{n-1}]) \implies (TrueCharacter(Is[a]) == C \lor RegisterAs[a][C])$$
-    *(Note: $TrueCharacter(Drunk\_T) = Drunk$)*
--   **Virgin** (Day $n$):
-    $$(Is[p][Virgin] \land \neg Poisoned[p][D_n] \land NominatedBy[p][a][D_n] \land Is[a][Townsfolk]) \implies Executed[a][D_n]$$
--   **Slayer** (Day $n$):
-    $$(Is[p][Slayer] \land \neg Poisoned[p][D_n] \land Shoots[p][a][D_n] \land Is[a][Demon]) \implies \neg Alive[a][D_n+1]$$
--   **Soldier**:
-    $$\forall n, Is[p][Soldier] \implies \neg (ImpKills[p][N_n])$$
+| Claim / ReportLog | Variable Implications |
+| :--- | :--- |
+| **Washerwoman** ($p$ sees $a, b$ as Townsfolk $T$) | $(Is[p][Washerwoman] \land \neg Poisoned[p][N_1]) \implies (Is[a][T] \lor Is[b][T] \lor Is[a][Spy] \lor Is[b][Spy])$ |
+| **Librarian** ($p$ sees $a, b$ as Outsider $O$) | $(Is[p][Librarian] \land \neg Poisoned[p][N_1]) \implies (Is[a][O] \lor Is[b][O] \lor Is[a][Spy] \lor Is[b][Spy])$ |
+| **Investigator** ($p$ sees $a, b$ as Minion $M$) | $(Is[p][Investigator] \land \neg Poisoned[p][N_1]) \implies (Is[a][M] \lor Is[b][M] \lor Is[a][Recluse] \lor Is[b][Recluse])$ |
+| **Chef** ($p$ learns $N$ pairs) | $(Is[p][Chef] \land \neg Poisoned[p][N_1]) \implies \text{CountPairs}(Evil, N_1) = N$ |
+| **Empath** ($p$ learns $N$ neighbors at $N_n$) | $(Is[p][Empath] \land \neg Poisoned[p][N_n]) \implies \text{CountEvilNeighbors}(p, N_n) = N$ |
+| **Fortune Teller** ($p$ picks $a, b$ at $N_n$) | $(Is[p][FortuneTeller] \land \neg Poisoned[p][N_n]) \implies (Y \iff (Evil[a] \lor Evil[b] \lor RedHerring[a] \lor RedHerring[b]))$ |
+| **Undertaker** ($p$ learns $a$ was $C$ at $N_n$) | $(Is[p][Undertaker] \land \neg Poisoned[p][N_n] \land Executed[a][D_{n-1}]) \implies (TrueChar(Is[a]) = C \lor RegisterAs[a][C])$ |
+| **Monk** ($p$ protects $a$ at $N_n$) | $(Is[p][Monk] \land \neg Poisoned[p][N_n]) \implies \neg \text{ImpKills}(a, N_n)$ |
+| **Ravenkeeper** ($p$ dies at $N_n$, sees $a$ as $C$) | $(Is[p][Ravenkeeper] \land \neg Poisoned[p][N_n] \land \text{Dies}(p, N_n)) \implies (Is[a][C] \lor RegisterAs[a][C])$ |
+| **Virgin** ($a$ nominates $p$ on $D_n$) | $(Is[p][Virgin] \land \neg Poisoned[p][D_n] \land \text{NominatedBy}(p, a, D_n) \land Is[a][Townsfolk]) \implies Executed[a][D_n]$ |
+| **Slayer** ($p$ shoots $a$ on $D_n$) | $(Is[p][Slayer] \land \neg Poisoned[p][D_n] \land \text{Shoots}(p, a, D_n) \land Is[a][Demon]) \implies \neg Alive[a][D_n+1]$ |
+| **Soldier** (Passive) | $Is[p][Soldier] \implies \forall n, \neg \text{ImpKills}(p, N_n)$ |
+| **Mayor** (Passive/Win) | $\text{GoodWins} \iff (\text{AliveCount} \le 3 \land \neg \text{Execution} \land Is[Mayor][Alive])$ |
+| **Mayor** (Bounce) | $(Is[p][Mayor] \land \neg Poisoned[p][N_n] \land \text{ImpKills}(p, N_n)) \implies \exists a \neq p, \text{ImpKills}(a, N_n)$ |
 
 ### Outsiders
 
+-   **Butler**: Vote constraint. (Does not typically affect information claims).
+-   **Drunk**: 
+    -   See Section 2 for core logic.
 -   **Recluse**:
     -   $Is[p][Recluse] \implies (RegisterEvil[p] \lor RegisterMinion[p] \lor RegisterDemon[p])$
 -   **Saint**:
-    -   $(Is[p][Saint] \land Executed(p)) \implies EvilWins$
+    -   $(Is[p][Saint] \land Executed[p][D_n]) \implies EvilWins$
 
 ### Minions
 
