@@ -3,7 +3,7 @@ use strum::{EnumIter, IntoEnumIterator};
 
 pub mod solver;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, EnumIter, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, EnumIter, Hash, PartialOrd, Ord)]
 pub enum Player {
     Unresolved,
     Seat(i32),
@@ -107,7 +107,7 @@ pub enum Info {
 /// Somewhat annoyingly, the Blood on the Clocktower has decided that it will
 /// follow a 1-indexed night naming convention, i.e. we have:
 /// Night-1, Day-1, Night-2, etc.
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Copy, Hash)]
 pub enum Time {
     Night(i32),
     Day(i32),
@@ -164,7 +164,6 @@ pub enum Claim {
     PoisonerPoisons(Player),
     Baron,
     ScarletWomanDemonizes,
-    Spy,
     ImpKills(Player),
 }
 

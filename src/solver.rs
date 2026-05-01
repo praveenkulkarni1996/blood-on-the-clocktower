@@ -1,11 +1,12 @@
+use std::char;
 use std::collections::{BTreeMap, HashMap};
 
 use z3::ast::Bool;
 use z3::{Context, Solver};
 
-use crate::Player;
 use crate::Player::Seat;
-use crate::{Character, Time};
+use crate::{Character, Claim, Time};
+use crate::{Player, ReportLog};
 
 struct Registry<'ctx> {
     context: &'ctx Context,
@@ -56,6 +57,68 @@ impl<'ctx> Registry<'ctx> {
     }
 }
 
+pub fn constrain(r: &Registry, history: &Vec<ReportLog>, log: &ReportLog) -> z3::ast::Bool {
+    use crate::Evil::*;
+    use crate::Good::*;
+    use crate::Minion::*;
+    use crate::Outsider::*;
+    use crate::ReportLog::OnTime;
+    use crate::Townsfolk::*;
+    use Character::*;
+    use Claim::*;
+
+    match log {
+        // Washerwoman |alpha| sees |bravo| OR |charlie| as character |townsfolk|.
+        OnTime(t, alpha, WasherwomanSees(bravo, charlie, townsfolk)) => {
+            let alpha_is_washerwoman = r.get(*alpha, Good(Townsfolk(Washerwoman)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+
+            let bravo_is_correct = r.get(*bravo, Good(Townsfolk(*townsfolk)));
+            let charlie_is_correct = r.get(*charlie, Good(Townsfolk(*townsfolk)));
+
+            let bravo_is_sober_spy =
+                r.get(*bravo, Evil(Minion(Spy))) & r.is_poisoned[&bravo][&t].not();
+            let charlie_is_sober_spy =
+                r.get(*charlie, Evil(Minion(Spy))) & r.is_poisoned[&charlie][&t].not();
+
+            (alpha_is_washerwoman & !alpha_is_poisoned).implies(
+                alpha_is_drunk
+                    | bravo_is_correct
+                    | charlie_is_correct
+                    | bravo_is_sober_spy
+                    | charlie_is_sober_spy,
+            )
+        }
+
+        // Librarian |alpha| sees that either |bravo| OR |charlie| is the Outsider |outsider|.
+        OnTime(t, alpha, LibrarianSees(bravo, charlie, outsider)) => {
+            let alpha_is_librarian = r.get(*alpha, Good(Townsfolk(Librarian)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+
+            let bravo_is_correct = r.get(*bravo, Good(Outsider(*outsider)));
+            let charlie_is_correct = r.get(*charlie, Good(Outsider(*outsider)));
+
+            let bravo_is_sober_spy =
+                r.get(*bravo, Evil(Minion(Spy))) & r.is_poisoned[&bravo][&t].not();
+
+            let charlie_is_sober_spy =
+                r.get(*charlie, Evil(Minion(Spy))) & r.is_poisoned[&charlie][&t].not();
+
+            (alpha_is_librarian & !alpha_is_poisoned).implies(
+                alpha_is_drunk
+                    | bravo_is_correct
+                    | charlie_is_correct
+                    | bravo_is_sober_spy
+                    | charlie_is_sober_spy,
+            )
+        }
+
+        _ => todo!(), // TODO: implement the rest of the claim types.
+    }
+}
+
 /// Every player has exactly one character.
 /// TODO(proof): We have not yet modelled starpassing or ScarletWoman.
 fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
@@ -80,27 +143,6 @@ fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
     }
 }
 
-pub fn foo() {
-    let solver = Solver::new();
-
-    let registry = Registry::new(&solver.get_context(), 3);
-
-    use crate::{Good, Townsfolk};
-    let adam_investigator: &Bool = registry.get(
-        Player::Seat(0),
-        Character::Good(Good::Townsfolk(Townsfolk::Investigator)),
-    );
-    solver.assert(adam_investigator);
-    player_has_exactly_one_character(&solver, &registry);
-    character_has_at_most_one_player(&solver, &registry);
-
-    // run the solver
-    _ = solver.check();
-    let model = solver.get_model().unwrap();
-
-    println!("{model:?}");
-
-    for c in Character::iter() {
-        println!("{:?}", c);
-    }
+pub fn foo() -> String {
+    return String::from("hello world");
 }
