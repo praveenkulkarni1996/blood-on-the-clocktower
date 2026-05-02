@@ -1,4 +1,4 @@
-use std::char;
+use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
 
 use z3::ast::Bool;
@@ -24,6 +24,42 @@ struct Registry<'ctx> {
 
     /// Is player X a red herring?
     is_red_herring: HashMap<Player, Bool>,
+}
+
+fn must_register_evil(r: &Registry, p: &Player) -> z3::ast::Bool {
+    use crate::Character::*;
+    use crate::Demon::*;
+    use crate::Evil::*;
+    use crate::Minion::*;
+
+    r.get(*p, Evil(Minion(Baron)))
+        | r.get(*p, Evil(Minion(Poisoner)))
+        | r.get(*p, Evil(Minion(ScarletWoman)))
+        | r.get(*p, Evil(Demon(Imp)))
+}
+
+fn can_register_evil(r: &Registry, p: &Player) -> z3::ast::Bool {
+    use crate::Character::*;
+    use crate::Demon::*;
+    use crate::Evil::*;
+    use crate::Good::*;
+    use crate::Minion::*;
+    use crate::Outsider::*;
+
+    r.get(*p, Evil(Minion(Baron)))
+        | r.get(*p, Evil(Minion(Poisoner)))
+        | r.get(*p, Evil(Minion(ScarletWoman)))
+        | r.get(*p, Evil(Minion(Spy)))
+        | r.get(*p, Evil(Demon(Imp)))
+        | r.get(*p, Good(Outsider(Recluse)))
+}
+
+fn must_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
+    must_register_evil(r, p1) | must_register_evil(r, p2)
+}
+
+fn can_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
+    can_register_evil(r, p1) | can_register_evil(r, p2)
 }
 
 impl<'ctx> Registry<'ctx> {
@@ -136,6 +172,37 @@ pub fn constrain(r: &Registry, history: &Vec<ReportLog>, log: &ReportLog) -> z3:
                     | bravo_is_sober_recluse
                     | charlie_is_sober_recluse,
             )
+        }
+
+        // Chef |alpha| gets the number |num|. This means that |num| players (other than |alpha|)
+        OnTime(t, alpha, ChefGets(num)) => {
+            // Let us assume that the recluse and the spy are not poisoned.
+            // In general, assuming that the Spy is
+            // logic from the Good team's perspective, since every world in which the recluse is poisoned is equivalent to a world where the poisoner self-poisons.
+
+            let zero = z3::ast::Int::from_i64(0);
+            let one = z3::ast::Int::from_i64(1);
+
+            let must_pairs: Vec<z3::ast::Int> = (0..r.num_players)
+                .circular_tuple_windows::<(_, _)>()
+                .map(|(p1, p2)| must_evil_pair(r, &Seat(p1), &Seat(p2)).ite(&one, &zero))
+                .collect();
+
+            let can_pairs: Vec<z3::ast::Int> = (0..r.num_players)
+                .circular_tuple_windows::<(_, _)>()
+                .map(|(p1, p2)| can_evil_pair(r, &Seat(p1), &Seat(p2)).ite(&one, &zero))
+                .collect();
+
+            let chef_num = z3::ast::Int::from_i64(*num as i64);
+            let chef_min = z3::ast::Int::add(&must_pairs.iter().collect::<Vec<_>>()).le(&chef_num);
+            let chef_max = z3::ast::Int::add(&can_pairs.iter().collect::<Vec<_>>()).ge(&chef_num);
+            let chef_correct = chef_min & chef_max;
+
+            let alpha_is_chef = r.get(*alpha, Good(Townsfolk(Chef)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+
+            (alpha_is_chef & !alpha_is_poisoned).implies(alpha_is_drunk | chef_correct)
         }
 
         _ => todo!(), // TODO: implement the rest of the claim types.
