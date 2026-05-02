@@ -290,13 +290,14 @@ mod tests {
     use crate::Evil::*;
     use crate::Good::*;
     use crate::Minion::*;
+    use crate::Outsider::*;
     use crate::Player::Seat;
     use crate::Time;
     use crate::Townsfolk::*;
     use z3::Solver;
 
     #[test]
-    fn test_chef_number_1_with_spy_and_5_players() {
+    fn test_chef_spy_recluse_washerwoman_empath_gets_chef_0() {
         let solver = Solver::new();
         let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
 
@@ -304,10 +305,10 @@ mod tests {
         player_has_exactly_one_character(&solver, &registry);
         character_has_at_most_one_player(&solver, &registry);
 
-        // Round-Robin: CHEF - SPY - INVESTIGATOR - WASHERWOMAN - EMPATH
+        // Round-Robin: CHEF - SPY - RECLUSE - WASHERWOMAN - EMPATH
         solver.assert(&registry.is_character[&(Seat(0), Good(Townsfolk(Chef)))]);
         solver.assert(&registry.is_character[&(Seat(1), Evil(Minion(Spy)))]);
-        solver.assert(&registry.is_character[&(Seat(2), Good(Townsfolk(Investigator)))]);
+        solver.assert(&registry.is_character[&(Seat(2), Good(Outsider(Recluse)))]);
         solver.assert(&registry.is_character[&(Seat(3), Good(Townsfolk(Washerwoman)))]);
         solver.assert(&registry.is_character[&(Seat(4), Good(Townsfolk(Empath)))]);
 
@@ -320,22 +321,61 @@ mod tests {
         let chef_constraint = constrain(&registry, &vec![], &chef_claim);
         solver.assert(&chef_constraint);
 
-        // --- Check Satisfiability ---
-        match solver.check() {
-            z3::SatResult::Sat => {
-                // If satisfiable, the configuration (roles + Chef's claim) is valid.
-                println!("Chef number test with Spy is satisfiable as expected.");
-                assert!(
-                    true,
-                    "The configuration should be satisfiable for ChefGets(0)"
-                );
-            }
-            z3::SatResult::Unsat => {
-                panic!("ChefGets(0) should have been SAT, but the solver returned UNSAT.")
-            }
-            z3::SatResult::Unknown => {
-                panic!("ChefGets(0) should have been SAT, but the solver returned UNKNOWN.")
-            }
-        }
+        assert_eq!(solver.check(), z3::SatResult::Sat);
+    }
+
+    #[test]
+    fn test_chef_spy_recluse_washerwoman_empath_gets_chef_1() {
+        let solver = Solver::new();
+        let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
+
+        // --- Add General Constraints ---
+        player_has_exactly_one_character(&solver, &registry);
+        character_has_at_most_one_player(&solver, &registry);
+
+        // Round-Robin: CHEF - SPY - RECLUSE - WASHERWOMAN - EMPATH
+        solver.assert(&registry.is_character[&(Seat(0), Good(Townsfolk(Chef)))]);
+        solver.assert(&registry.is_character[&(Seat(1), Evil(Minion(Spy)))]);
+        solver.assert(&registry.is_character[&(Seat(2), Good(Outsider(Recluse)))]);
+        solver.assert(&registry.is_character[&(Seat(3), Good(Townsfolk(Washerwoman)))]);
+        solver.assert(&registry.is_character[&(Seat(4), Good(Townsfolk(Empath)))]);
+
+        // --- Initialize is_poisoned map for relevant players/times ---
+        solver.assert(!&registry.is_poisoned[&Seat(0)][&Time::Night(1)]); // Assert Chef is not poisoned
+
+        // --- Add Chef's Claim Log ---
+        // Chef (Player 0) claims a chef number of 1 at Time 0.
+        let chef_claim = ReportLog::OnTime(Time::Night(1), Seat(0), Claim::ChefGets(1));
+        let chef_constraint = constrain(&registry, &vec![], &chef_claim);
+        solver.assert(&chef_constraint);
+
+        assert_eq!(solver.check(), z3::SatResult::Sat);
+    }
+
+    fn test_chef_spy_recluse_washerwoman_empath_cannot_get_chef2() {
+        let solver = Solver::new();
+        let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
+
+        // --- Add General Constraints ---
+        player_has_exactly_one_character(&solver, &registry);
+        character_has_at_most_one_player(&solver, &registry);
+
+        // Round-Robin: CHEF - SPY - RECLUSE - WASHERWOMAN - EMPATH
+        solver.assert(&registry.is_character[&(Seat(0), Good(Townsfolk(Chef)))]);
+        solver.assert(&registry.is_character[&(Seat(1), Evil(Minion(Spy)))]);
+        solver.assert(&registry.is_character[&(Seat(2), Good(Outsider(Recluse)))]);
+        solver.assert(&registry.is_character[&(Seat(3), Good(Townsfolk(Washerwoman)))]);
+        solver.assert(&registry.is_character[&(Seat(4), Good(Townsfolk(Empath)))]);
+
+        // --- Initialize is_poisoned map for relevant players/times ---
+        solver.assert(!&registry.is_poisoned[&Seat(0)][&Time::Night(1)]); // Assert Chef is not poisoned
+
+        // --- Add Chef's Claim Log ---
+        // Chef (Player 0) claims a chef number of 1 at Time 0.
+        let chef_claim = ReportLog::OnTime(Time::Night(1), Seat(0), Claim::ChefGets(2));
+        let chef_constraint = constrain(&registry, &vec![], &chef_claim);
+        solver.assert(&chef_constraint);
+
+        assert_eq!(solver.check(), z3::SatResult::Unsat);
     }
 }
