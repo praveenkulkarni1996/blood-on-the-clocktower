@@ -187,11 +187,11 @@ pub enum Claim {
     FortuneTellerYes(Player, Player), // https://wiki.bloodontheclocktower.com/Fortune_Teller
     FortuneTellerNo(Player, Player),  // https://wiki.bloodontheclocktower.com/Fortune_Teller
     UndertakerSees(Player, Character),
-    MonkClaims(),
-    Ravenkeeper(Player, Character),
+    RavenkeeperSees(Player, Character),
     VirginIsNominatedBy(Player, LiveOrDie), // Virgin is nominated by `Player`, and might LiveOrDie
     SlayerShoots(Player, LiveOrDie),        // Slayer shoots the `Player` who will LiveOrDie
 
+    MonkClaims(),
     // TODO: It might be worth it to take a good look at minion events.
     // In particular, I think most of these might not be very useful.
     // These are primarily there for debugging purposes.

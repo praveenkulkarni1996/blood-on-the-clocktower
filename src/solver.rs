@@ -1,3 +1,4 @@
+use core::panic;
 use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
 
@@ -8,7 +9,7 @@ use crate::Player::Seat;
 use crate::{Character, Claim, Time, TimeIterator};
 use crate::{Player, ReportLog};
 
-struct Registry<'ctx> {
+pub struct Registry<'ctx> {
     context: &'ctx Context,
 
     num_players: i32,
@@ -138,7 +139,8 @@ impl<'ctx> Registry<'ctx> {
     }
 }
 
-pub fn constrain(r: &Registry, history: &Vec<ReportLog>, log: &ReportLog) -> z3::ast::Bool {
+pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3::ast::Bool {
+    use crate::Demon::*;
     use crate::Evil::*;
     use crate::Good::*;
     use crate::Minion::*;
@@ -198,7 +200,7 @@ pub fn constrain(r: &Registry, history: &Vec<ReportLog>, log: &ReportLog) -> z3:
 
         // Investigator |alpha| sees that either |bravo| OR |charlie| is the Minion |minion|.
         OnTime(t, alpha, InvestigatorSees(bravo, charlie, minion)) => {
-            let alpha_is_investigator = r.get(*alpha, Good(Townsfolk(Investigator)));
+            let alpha_is_investigator: &Bool = r.get(*alpha, Good(Townsfolk(Investigator)));
             let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
             let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
 
@@ -250,6 +252,107 @@ pub fn constrain(r: &Registry, history: &Vec<ReportLog>, log: &ReportLog) -> z3:
             (alpha_is_chef & !alpha_is_poisoned).implies(alpha_is_drunk | chef_correct)
         }
 
+        // FortuneTeller |alpha| gets a YES on |bravo| and |charlie|.
+        OnTime(t, alpha, FortuneTellerYes(bravo, charlie)) => {
+            let alpha_is_fortune_teller: &Bool = r.get(*alpha, Good(Townsfolk(FortuneTeller)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+
+            let bravo_is_demon = r.get(*bravo, Evil(Demon(Imp)));
+            let charlie_is_demon = r.get(*charlie, Evil(Demon(Imp)));
+
+            let bravo_is_red_herring = &r.is_red_herring[bravo];
+            let charlie_is_red_herring = &r.is_red_herring[charlie];
+
+            let bravo_is_sober_recluse =
+                r.get(*bravo, Good(Outsider(Recluse))) & r.is_poisoned[&bravo][&t].not();
+            let charlie_is_sober_recluse =
+                r.get(*charlie, Good(Outsider(Recluse))) & r.is_poisoned[&charlie][&t].not();
+
+            (alpha_is_fortune_teller & !alpha_is_poisoned).implies(
+                alpha_is_drunk
+                    | bravo_is_demon
+                    | charlie_is_demon
+                    | bravo_is_red_herring
+                    | charlie_is_red_herring
+                    | bravo_is_sober_recluse
+                    | charlie_is_sober_recluse,
+            )
+        }
+
+        // FortuneTeller |alpha| gets a NO on |bravo| and |charlie|.
+        OnTime(t, alpha, FortuneTellerNo(bravo, charlie)) => {
+            let alpha_is_fortune_teller: &Bool = r.get(*alpha, Good(Townsfolk(FortuneTeller)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+
+            let bravo_is_demon = r.get(*bravo, Evil(Demon(Imp)));
+            let charlie_is_demon = r.get(*charlie, Evil(Demon(Imp)));
+
+            let bravo_is_red_herring = &r.is_red_herring[bravo];
+            let charlie_is_red_herring = &r.is_red_herring[charlie];
+
+            (alpha_is_fortune_teller & !alpha_is_poisoned).implies(
+                alpha_is_drunk
+                    | !bravo_is_demon
+                    | !charlie_is_demon
+                    | !bravo_is_red_herring
+                    | !charlie_is_red_herring,
+            )
+        }
+
+        // Undertaker |alpha| sees the previously executed player |bravo| as the |character|.
+        OnTime(t, alpha, UndertakerSees(bravo, character)) => {
+            // TODO: Add checks that |bravo| is the previously executed player from |history|.
+            // If we do not do that, then this essentially becomes a RavenKeeper.
+
+            let alpha_is_undertaker = r.get(*alpha, Good(Townsfolk(Undertaker)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
+
+            let bravo_is_spy = r.get(*bravo, Evil(Minion(Spy)));
+            let bravo_is_recluse = r.get(*bravo, Good(Outsider(Recluse)));
+            let bravo_is_character = r.get(*bravo, *character);
+
+            match character {
+                Good(_) => (alpha_is_undertaker & !alpha_is_poisoned & !alpha_is_drunk)
+                    .implies(bravo_is_character | bravo_is_spy),
+                Evil(_) => (alpha_is_undertaker & !alpha_is_poisoned & !alpha_is_drunk)
+                    .implies(bravo_is_character | bravo_is_recluse),
+            }
+        }
+
+        // Ravenkeeper |alpha| sees the |bravo| as the |character|.
+        OnTime(t, alpha, RavenkeeperSees(bravo, character)) => {
+            // TODO: Checks that |alpha| has JUST died.
+            let previous_day = match t {
+                Time::Night(night) => Time::Day(night - 1),
+                Time::Day(_) => panic!("ravenskeeper cannot see in the day"), // TODO: make this not panic by making this unrepresentable.
+            };
+
+            let alpha_is_alive_in_the_day = &r.is_alive[alpha][&previous_day];
+            let alpha_is_dead_in_the_night = &!r.is_alive[alpha][t].clone();
+            let alpha_just_died = alpha_is_alive_in_the_day & alpha_is_dead_in_the_night;
+
+            let alpha_is_ravenskeeper = r.get(*alpha, Good(Townsfolk(Ravenkeeper)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
+
+            let bravo_is_spy = r.get(*bravo, Evil(Minion(Spy)));
+            let bravo_is_recluse = r.get(*bravo, Good(Outsider(Recluse)));
+            let bravo_is_character = r.get(*bravo, *character);
+
+            match character {
+                Good(_) => {
+                    (alpha_is_ravenskeeper & !alpha_is_poisoned & !alpha_is_drunk & alpha_just_died)
+                        .implies(bravo_is_character | bravo_is_spy)
+                }
+                Evil(_) => {
+                    (alpha_is_ravenskeeper & !alpha_is_poisoned & !alpha_is_drunk & alpha_just_died)
+                        .implies(bravo_is_character | bravo_is_recluse)
+                }
+            }
+        }
         _ => todo!(), // TODO: implement the rest of the claim types.
     }
 }
@@ -283,8 +386,6 @@ pub fn foo() -> String {
 }
 #[cfg(test)]
 mod tests {
-    use core::panic;
-
     use super::*;
     use crate::Character::*;
     use crate::Evil::*;
@@ -352,6 +453,7 @@ mod tests {
         assert_eq!(solver.check(), z3::SatResult::Sat);
     }
 
+    #[test]
     fn test_chef_spy_recluse_washerwoman_empath_cannot_get_chef2() {
         let solver = Solver::new();
         let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
