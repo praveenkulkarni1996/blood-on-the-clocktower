@@ -6,7 +6,7 @@ use z3::ast::Bool;
 use z3::{Context, Solver};
 
 use crate::Player::Seat;
-use crate::{Character, Claim, Time, TimeIterator};
+use crate::{Character, Claim, Outsider, Time, TimeIterator};
 use crate::{Player, ReportLog};
 
 pub struct Registry<'ctx> {
@@ -27,6 +27,34 @@ pub struct Registry<'ctx> {
 
     /// Is player X a red herring?
     is_red_herring: HashMap<Player, Bool>,
+}
+
+fn is_minion(r: &Registry, p: Player) -> z3::ast::Bool {
+    use crate::Character::*;
+    use crate::Evil::Minion;
+    use crate::Minion::*;
+
+    r.get(p, Evil(Minion(Baron)))
+        | r.get(p, Evil(Minion(Poisoner)))
+        | r.get(p, Evil(Minion(ScarletWoman)))
+        | r.get(p, Evil(Minion(Spy)))
+}
+
+fn is_lying(r: &Registry, p: Player) -> z3::ast::Bool {
+    use crate::Character::*;
+    use crate::Demon::*;
+    use crate::Evil::*;
+    use crate::Good::*;
+    use crate::Minion::*;
+    use crate::Outsider::*;
+
+    // Only drunks + minions + demons will lie about their role.
+    r.get(p, Good(Outsider(Drunk)))
+        | r.get(p, Evil(Minion(Baron)))
+        | r.get(p, Evil(Minion(Poisoner)))
+        | r.get(p, Evil(Minion(ScarletWoman)))
+        | r.get(p, Evil(Minion(Spy)))
+        | r.get(p, Evil(Demon(Imp)))
 }
 
 fn must_register_evil(r: &Registry, p: &Player) -> z3::ast::Bool {
@@ -208,8 +236,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         // Librarian |alpha| sees that either |bravo| OR |charlie| is the Outsider |outsider|.
         OnTime(t, alpha, LibrarianSees(bravo, charlie, outsider)) => {
             let alpha_is_librarian = r.get(*alpha, Good(Townsfolk(Librarian)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
             let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+            let alpha_is_lying = &is_lying(&r, *alpha);
 
             let bravo_is_correct = r.get(*bravo, Good(Outsider(*outsider)));
             let charlie_is_correct = r.get(*charlie, Good(Outsider(*outsider)));
@@ -220,13 +248,14 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let charlie_is_sober_spy =
                 r.get(*charlie, Evil(Minion(Spy))) & r.is_poisoned[&charlie][&t].not();
 
-            (alpha_is_librarian & !alpha_is_poisoned).implies(
-                alpha_is_drunk
-                    | bravo_is_correct
-                    | charlie_is_correct
-                    | bravo_is_sober_spy
-                    | charlie_is_sober_spy,
-            )
+            (alpha_is_librarian | alpha_is_lying)
+                & (alpha_is_librarian).implies(
+                    alpha_is_poisoned
+                        | bravo_is_correct
+                        | charlie_is_correct
+                        | bravo_is_sober_spy
+                        | charlie_is_sober_spy,
+                )
         }
 
         // Investigator |alpha| sees that either |bravo| OR |charlie| is the Minion |minion|.
@@ -329,7 +358,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         // FortuneTeller |alpha| gets a YES on |bravo| and |charlie|.
         OnTime(t, alpha, FortuneTellerYes(bravo, charlie)) => {
             let alpha_is_fortune_teller: &Bool = r.get(*alpha, Good(Townsfolk(FortuneTeller)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_lying = &is_lying(&r, *alpha);
             let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
 
             let bravo_is_demon = r.get(*bravo, Evil(Demon(Imp)));
@@ -343,21 +372,22 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let charlie_is_sober_recluse =
                 r.get(*charlie, Good(Outsider(Recluse))) & r.is_poisoned[&charlie][&t].not();
 
-            (alpha_is_fortune_teller & !alpha_is_poisoned).implies(
-                alpha_is_drunk
-                    | bravo_is_demon
-                    | charlie_is_demon
-                    | bravo_is_red_herring
-                    | charlie_is_red_herring
-                    | bravo_is_sober_recluse
-                    | charlie_is_sober_recluse,
-            )
+            (alpha_is_lying | alpha_is_fortune_teller)
+                & alpha_is_fortune_teller.implies(
+                    alpha_is_poisoned
+                        | bravo_is_demon
+                        | charlie_is_demon
+                        | bravo_is_red_herring
+                        | charlie_is_red_herring
+                        | bravo_is_sober_recluse
+                        | charlie_is_sober_recluse,
+                )
         }
 
         // FortuneTeller |alpha| gets a NO on |bravo| and |charlie|.
         OnTime(t, alpha, FortuneTellerNo(bravo, charlie)) => {
             let alpha_is_fortune_teller: &Bool = r.get(*alpha, Good(Townsfolk(FortuneTeller)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_lying = &is_lying(&r, *alpha);
             let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
 
             let bravo_is_demon = r.get(*bravo, Evil(Demon(Imp)));
@@ -366,13 +396,14 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let bravo_is_red_herring = &r.is_red_herring[bravo];
             let charlie_is_red_herring = &r.is_red_herring[charlie];
 
-            (alpha_is_fortune_teller & !alpha_is_poisoned).implies(
-                alpha_is_drunk
-                    | !bravo_is_demon
-                    | !charlie_is_demon
-                    | !bravo_is_red_herring
-                    | !charlie_is_red_herring,
-            )
+            (alpha_is_lying | alpha_is_fortune_teller)
+                & alpha_is_fortune_teller.implies(
+                    alpha_is_poisoned
+                        | !bravo_is_demon
+                        | !charlie_is_demon
+                        | !bravo_is_red_herring
+                        | !charlie_is_red_herring,
+                )
         }
 
         // Undertaker |alpha| sees the previously executed player |bravo| as the |character|.
@@ -381,19 +412,20 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             // If we do not do that, then this essentially becomes a RavenKeeper.
 
             let alpha_is_undertaker = r.get(*alpha, Good(Townsfolk(Undertaker)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_lying = &is_lying(&r, *alpha);
             let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             let bravo_is_spy = r.get(*bravo, Evil(Minion(Spy)));
             let bravo_is_recluse = r.get(*bravo, Good(Outsider(Recluse)));
             let bravo_is_character = r.get(*bravo, *character);
 
-            match character {
-                Good(_) => (alpha_is_undertaker & !alpha_is_poisoned & !alpha_is_drunk)
-                    .implies(bravo_is_character | bravo_is_spy),
-                Evil(_) => (alpha_is_undertaker & !alpha_is_poisoned & !alpha_is_drunk)
-                    .implies(bravo_is_character | bravo_is_recluse),
-            }
+            let bravo_constraint = match character {
+                Good(_) => (bravo_is_character | bravo_is_spy),
+                Evil(_) => (bravo_is_character | bravo_is_recluse),
+            };
+
+            (alpha_is_lying | alpha_is_undertaker)
+                & alpha_is_undertaker.implies(alpha_is_poisoned | bravo_constraint)
         }
 
         // Ravenkeeper |alpha| sees the |bravo| as the |character|.
@@ -478,6 +510,18 @@ pub fn mark_characters_not_in_play(
         let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), *c));
         solver.assert(z3::ast::atmost(_players, 0));
     }
+}
+
+pub fn fix_minion_count(solver: &Solver, registry: &Registry, count: i64) {
+    let zero = z3::ast::Int::from_i64(0);
+    let one = z3::ast::Int::from_i64(1);
+
+    let minions: Vec<z3::ast::Int> = (0..registry.num_players)
+        .map(|seat| is_minion(registry, Seat(seat)).ite(&one, &zero))
+        .collect();
+
+    let want_minions = z3::ast::Int::from_i64(count);
+    solver.assert(z3::ast::Int::add(&minions.iter().collect::<Vec<_>>()).eq(want_minions));
 }
 
 pub fn foo() -> String {

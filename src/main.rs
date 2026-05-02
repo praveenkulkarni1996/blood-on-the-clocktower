@@ -11,7 +11,7 @@ fn setup_game() -> Vec<botc::ReportLog> {
     // Cyclic seating order starting from Ollie
     let ollie: Player = Player::Seat(0); // Baron
     let carly = Player::Seat(1); // Fortune Teller
-    let john = Player::Seat(2); // Librarian
+    let john: Player = Player::Seat(2); // Librarian
     let brooke = Player::Seat(3); // Drunk / Undertaker
     let adam = Player::Seat(4); // Chef
     let isaac = Player::Seat(5); // Monk
@@ -108,6 +108,7 @@ fn main() {
     solver::character_has_at_most_one_player(&solver, &registry);
     solver::atmost_one_player_can_be_red_herringed(&solver, &registry);
     solver::atmost_one_player_can_be_poisoned(&solver, &registry);
+    solver::fix_minion_count(&solver, &registry, 2);
     solver::mark_characters_not_in_play(
         &solver,
         &registry,
@@ -115,6 +116,7 @@ fn main() {
             Character::Good(Good::Outsider(Outsider::Saint)),
             Character::Good(Good::Outsider(Outsider::Butler)),
             Character::Evil(Evil::Minion(Minion::ScarletWoman)),
+            Character::Evil(Evil::Minion(Minion::Spy)),
         ],
     );
 
