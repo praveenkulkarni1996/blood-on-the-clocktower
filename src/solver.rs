@@ -6,7 +6,7 @@ use z3::ast::Bool;
 use z3::{Context, Solver};
 
 use crate::Player::Seat;
-use crate::{Character, Claim, Outsider, Time, TimeIterator};
+use crate::{Character, Claim, Time, TimeIterator};
 use crate::{Player, ReportLog};
 
 pub struct Registry<'ctx> {
@@ -17,7 +17,7 @@ pub struct Registry<'ctx> {
     until: Time,
 
     /// Boolean variables that track "Is player X character Y?"
-    pub is_character: HashMap<(Player, Character), Bool>,
+    is_character: HashMap<(Player, Character), Bool>,
 
     /// Boolean variables that track "Is player X alive at the start of time Y?"
     is_alive: BTreeMap<Player, HashMap<Time, Bool>>,
@@ -211,7 +211,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
 
     match log {
         // Character |alpha| claims to be |character|.
-        OnTime(t, alpha, Am(character)) => {
+        OnTime(_t, alpha, Am(character)) => {
             let alpha_is_lying = &is_lying(&r, *alpha);
             let alpha_is_character = r.get(*alpha, *character);
 
@@ -428,8 +428,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let bravo_is_character = r.get(*bravo, *character);
 
             let bravo_constraint = match character {
-                Good(_) => (bravo_is_character | bravo_is_spy),
-                Evil(_) => (bravo_is_character | bravo_is_recluse),
+                Good(_) => bravo_is_character | bravo_is_spy,
+                Evil(_) => bravo_is_character | bravo_is_recluse,
             };
 
             (alpha_is_lying | alpha_is_undertaker)

@@ -2,7 +2,6 @@ use z3::Solver;
 
 use botc::Time::*;
 use botc::*;
-use z3::ast::Char;
 
 #[allow(unused_variables)]
 fn setup_game() -> Vec<botc::ReportLog> {
@@ -166,22 +165,6 @@ fn main() {
         solver.assert(ast_constraint);
     }
 
-    // Force the fortune-teller to be real. (Carly's view point)
-    solver.assert(
-        registry.is_character[&(
-            Player::Seat(1),
-            Character::Good(Good::Townsfolk(Townsfolk::FortuneTeller)),
-        )]
-            .clone(),
-    );
-    // Force the mayor to be real. (Dom's view point)
-    solver.assert(
-        registry.is_character[&(
-            Player::Seat(8),
-            Character::Good(Good::Townsfolk(Townsfolk::Mayor)),
-        )]
-            .clone(),
-    );
 
     solver::player_has_exactly_one_character(&solver, &registry);
     solver::character_has_at_most_one_player(&solver, &registry);
