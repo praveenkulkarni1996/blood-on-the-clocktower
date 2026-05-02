@@ -55,6 +55,34 @@ fn can_register_evil(r: &Registry, p: &Player) -> z3::ast::Bool {
         | r.get(*p, Good(Outsider(Recluse)))
 }
 
+fn can_register_good(r: &Registry, p: &Player) -> z3::ast::Bool {
+    use crate::Character::*;
+    use crate::Evil::*;
+    use crate::Good::*;
+    use crate::Minion::*;
+    use crate::Outsider::*;
+    use crate::Townsfolk::*;
+
+    r.get(*p, Good(Townsfolk(Washerwoman)))
+        | r.get(*p, Good(Townsfolk(Librarian)))
+        | r.get(*p, Good(Townsfolk(Investigator)))
+        | r.get(*p, Good(Townsfolk(Chef)))
+        | r.get(*p, Good(Townsfolk(Empath)))
+        | r.get(*p, Good(Townsfolk(FortuneTeller)))
+        | r.get(*p, Good(Townsfolk(Undertaker)))
+        | r.get(*p, Good(Townsfolk(Monk)))
+        | r.get(*p, Good(Townsfolk(Ravenkeeper)))
+        | r.get(*p, Good(Townsfolk(Virgin)))
+        | r.get(*p, Good(Townsfolk(Slayer)))
+        | r.get(*p, Good(Townsfolk(Soldier)))
+        | r.get(*p, Good(Townsfolk(Mayor)))
+        | r.get(*p, Good(Outsider(Recluse)))
+        | r.get(*p, Good(Outsider(Saint)))
+        | r.get(*p, Good(Outsider(Butler)))
+        | r.get(*p, Good(Outsider(Drunk)))
+        | r.get(*p, Evil(Minion(Spy)))
+}
+
 fn must_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
     must_register_evil(r, p1) & must_register_evil(r, p2)
 }
@@ -250,6 +278,49 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
 
             (alpha_is_chef & !alpha_is_poisoned).implies(alpha_is_drunk | chef_correct)
+        }
+
+        // Empath |alpha| gets a ZERO on their two alive neighbors: |bravo| and |charlie|.
+        OnTime(t, alpha, EmpathLearnsZero(bravo, charlie)) => {
+            // TODO: Add checks to ensure that bravo and charlie are actually alive neighbors.
+            let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+
+            alpha_is_empath.implies(
+                alpha_is_poisoned
+                    | alpha_is_drunk
+                    | (can_register_good(r, bravo) & can_register_good(r, charlie)),
+            )
+        }
+
+        // Empath |alpha| gets a ONE on their two alive neighbors: |bravo| and |charlie|.
+        OnTime(t, alpha, EmpathLearnsOne(bravo, charlie)) => {
+            // TODO: Add checks to ensure that bravo and charlie are actually alive neighbors.
+            let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+
+            alpha_is_empath.implies(
+                alpha_is_poisoned
+                    | alpha_is_drunk
+                    | (can_register_good(r, bravo) & can_register_evil(r, charlie))
+                    | (can_register_evil(r, bravo) & can_register_good(r, charlie)),
+            )
+        }
+
+        // Empath |alpha| gets a TWO on their two alive neighbors: |bravo| and |charlie|.
+        OnTime(t, alpha, EmpathLearnsTwo(bravo, charlie)) => {
+            // TODO: Add checks to ensure that bravo and charlie are actually alive neighbors.
+            let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
+            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+
+            alpha_is_empath.implies(
+                alpha_is_poisoned
+                    | alpha_is_drunk
+                    | (can_register_evil(r, bravo) & can_register_evil(r, charlie)),
+            )
         }
 
         // FortuneTeller |alpha| gets a YES on |bravo| and |charlie|.

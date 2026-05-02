@@ -97,13 +97,6 @@ pub enum LiveOrDie {
     Dies,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Info {
-    Neither,
-    One,
-    Both,
-}
-
 /// Somewhat annoyingly, the Blood on the Clocktower has decided that it will
 /// follow a 1-indexed night naming convention, i.e. we have:
 /// Night-1, Day-1, Night-2, etc.
@@ -183,7 +176,9 @@ pub enum Claim {
     LibrarianSees(Player, Player, Outsider),    // https://wiki.bloodontheclocktower.com/Librarian
     InvestigatorSees(Player, Player, Minion), // https://wiki.bloodontheclocktower.com/Investigator
     ChefGets(i32),                            // https://wiki.bloodontheclocktower.com/Chef
-    EmpathLearns(Player, Player, Info),       // https://wiki.bloodontheclocktower.com/Empath
+    EmpathLearnsZero(Player, Player),
+    EmpathLearnsOne(Player, Player),
+    EmpathLearnsTwo(Player, Player),
     FortuneTellerYes(Player, Player), // https://wiki.bloodontheclocktower.com/Fortune_Teller
     FortuneTellerNo(Player, Player),  // https://wiki.bloodontheclocktower.com/Fortune_Teller
     UndertakerSees(Player, Character),
