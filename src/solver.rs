@@ -14,6 +14,8 @@ pub struct Registry<'ctx> {
 
     num_players: i32,
 
+    until: Time,
+
     /// Boolean variables that track "Is player X character Y?"
     is_character: HashMap<(Player, Character), Bool>,
 
@@ -153,8 +155,9 @@ impl<'ctx> Registry<'ctx> {
         Registry {
             context,
             num_players: num_players.try_into().unwrap(),
-            is_character: is,
+            until: until,
 
+            is_character: is,
             is_alive: is_alive_map,
             is_poisoned: is_poisoned_map,
             is_red_herring: is_red_herring_map,
@@ -424,13 +427,13 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
                 }
             }
         }
-        _ => todo!(), // TODO: implement the rest of the claim types.
+        _other => todo!("pending implementation: {:?}", _other), // TODO: implement the rest of the claim types.
     }
 }
 
 /// Every player has exactly one character.
 /// TODO(proof): We have not yet modelled starpassing or ScarletWoman.
-fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
+pub fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
     for seat in 0..registry.num_players {
         {
             let _characters = Character::iter().map(|c| registry.get(Seat(seat), c));
@@ -445,10 +448,35 @@ fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
 
 /// Every character has at most one player.
 /// NOTE: When the Scarlet Woman / Imp-Starpass mechanic is implemented, this will need to be updated.
-fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
+pub fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
     for c in Character::iter() {
         let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), c));
         solver.assert(z3::ast::atmost(_players, 1));
+    }
+}
+
+pub fn atmost_one_player_can_be_poisoned(solver: &Solver, registry: &Registry) {
+    for time in TimeIterator::new(registry.until) {
+        let _poisoned =
+            (0..registry.num_players).map(|seat| &registry.is_poisoned[&Player::Seat(seat)][&time]);
+        solver.assert(z3::ast::atmost(_poisoned, 1));
+    }
+}
+
+pub fn atmost_one_player_can_be_red_herringed(solver: &Solver, registry: &Registry) {
+    let _red_herringed =
+        (0..registry.num_players).map(|seat| &registry.is_red_herring[&Player::Seat(seat)]);
+    solver.assert(z3::ast::atmost(_red_herringed, 1));
+}
+
+pub fn mark_characters_not_in_play(
+    solver: &Solver,
+    registry: &Registry,
+    characters: &Vec<Character>,
+) {
+    for c in characters.iter() {
+        let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), *c));
+        solver.assert(z3::ast::atmost(_players, 0));
     }
 }
 

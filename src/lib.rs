@@ -170,7 +170,7 @@ impl PartialOrd for Time {
 // This is the player visible log.
 // Some of this might come out publicily.
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Claim {
     WasherwomanSees(Player, Player, Townsfolk), // https://wiki.bloodontheclocktower.com/Washerwoman
     LibrarianSees(Player, Player, Outsider),    // https://wiki.bloodontheclocktower.com/Librarian
@@ -196,7 +196,7 @@ pub enum Claim {
     ImpKills(Player),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ReportLog {
     OnTime(Time, Player, Claim),
     Executes(Time, Player),
