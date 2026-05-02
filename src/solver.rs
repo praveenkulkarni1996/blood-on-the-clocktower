@@ -579,9 +579,6 @@ pub fn fix_minion_count(solver: &Solver, registry: &Registry, count: i64) {
     solver.assert(z3::ast::Int::add(&minions.iter().collect::<Vec<_>>()).eq(want_minions));
 }
 
-pub fn foo() -> String {
-    return String::from("hello world");
-}
 #[cfg(test)]
 mod tests {
     use super::*;
