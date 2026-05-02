@@ -509,6 +509,53 @@ pub fn atmost_one_player_can_be_red_herringed(solver: &Solver, registry: &Regist
     solver.assert(z3::ast::atmost(_red_herringed, 1));
 }
 
+/// We do not yet support the ability for a player to change characters.
+/// There are cases when a Poisoner could become the next Imp, and that is not
+/// yet handled in this case.
+pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registry) {
+    use crate::Character::*;
+    use crate::Evil::*;
+    use crate::Minion::*;
+
+    let is_alive_poisoner = |player: &Player, t: &Time| -> z3::ast::Bool {
+        let is_alive = &r.is_alive[player][t];
+        let is_poisoner = &r.is_character[&(*player, Evil(Minion(Poisoner)))];
+        is_alive & is_poisoner
+    };
+
+    for time in TimeIterator::new(r.until) {
+        let is_someone_alive_poisoner = {
+            let is_player_alive_poisoner = (0..r.num_players)
+                .map(|seat| Seat(seat))
+                .map(|player| is_alive_poisoner(&player, &time))
+                .collect_vec();
+
+            z3::ast::atleast(is_player_alive_poisoner.iter(), 1)
+        };
+
+        let is_someone_poisoned = {
+            let is_player_poisoned = (0..r.num_players)
+                .map(|seat| Seat(seat))
+                .map(|player| &r.is_poisoned[&player][&time]);
+
+            z3::ast::atmost(is_player_poisoned, 1)
+        };
+
+        let is_no_one_poisoned = {
+            let _is_player_poisoned = (0..r.num_players)
+                .map(|seat| Seat(seat))
+                .map(|player| &r.is_poisoned[&player][&time]);
+            z3::ast::atmost(_is_player_poisoned, 0)
+        };
+
+        let alive_poisoner_rule = is_someone_alive_poisoner.implies(is_someone_poisoned);
+        let dead_poisoner_rule = !is_someone_alive_poisoner.implies(is_no_one_poisoned);
+
+        solver.assert(alive_poisoner_rule);
+        solver.assert(dead_poisoner_rule);
+    }
+}
+
 pub fn mark_characters_not_in_play(
     solver: &Solver,
     registry: &Registry,

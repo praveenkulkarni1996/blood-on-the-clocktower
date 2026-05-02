@@ -171,6 +171,7 @@ fn main() {
     solver::atmost_one_player_can_be_red_herringed(&solver, &registry);
     solver::atmost_one_player_can_be_poisoned(&solver, &registry);
     solver::fix_minion_count(&solver, &registry, 2);
+    solver::poisoner_can_poison_one_person_only_if_alive(&solver, &registry);
     solver::mark_characters_not_in_play(
         &solver,
         &registry,
