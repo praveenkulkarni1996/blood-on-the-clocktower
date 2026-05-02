@@ -306,10 +306,11 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let chef_correct = chef_min & chef_max;
 
             let alpha_is_chef = r.get(*alpha, Good(Townsfolk(Chef)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
+            let alpha_is_lying = &is_lying(&r, *alpha);
             let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
 
-            (alpha_is_chef & !alpha_is_poisoned).implies(alpha_is_drunk | chef_correct)
+            (alpha_is_lying | alpha_is_chef)
+                & alpha_is_chef.implies(alpha_is_poisoned | chef_correct)
         }
 
         // Empath |alpha| gets a ZERO on their two alive neighbors: |bravo| and |charlie|.
