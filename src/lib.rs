@@ -113,6 +113,40 @@ pub enum Time {
     Day(i32),
 }
 
+pub struct TimeIterator {
+    current: Time,
+    end: Time,
+}
+
+impl TimeIterator {
+    pub fn new(end: Time) -> Self {
+        Self {
+            current: Time::Night(1),
+            end,
+        }
+    }
+}
+
+impl Iterator for TimeIterator {
+    type Item = Time;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current > self.end {
+            return None;
+        }
+
+        let result = self.current;
+
+        // Logic: Night(n) -> Day(n) -> Night(n+1)
+        self.current = match self.current {
+            Time::Night(n) => Time::Day(n),
+            Time::Day(n) => Time::Night(n + 1),
+        };
+
+        Some(result)
+    }
+}
+
 impl Ord for Time {
     /// The ordering is: Night(1) < Day(1) < Night(2) < Day(2) < ...
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {

@@ -5,7 +5,7 @@ use z3::ast::Bool;
 use z3::{Context, Solver};
 
 use crate::Player::Seat;
-use crate::{Character, Claim, Time};
+use crate::{Character, Claim, Time, TimeIterator};
 use crate::{Player, ReportLog};
 
 struct Registry<'ctx> {
@@ -55,16 +55,16 @@ fn can_register_evil(r: &Registry, p: &Player) -> z3::ast::Bool {
 }
 
 fn must_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
-    must_register_evil(r, p1) | must_register_evil(r, p2)
+    must_register_evil(r, p1) & must_register_evil(r, p2)
 }
 
 fn can_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
-    can_register_evil(r, p1) | can_register_evil(r, p2)
+    can_register_evil(r, p1) & can_register_evil(r, p2)
 }
 
 impl<'ctx> Registry<'ctx> {
     /// Create a new registry of variables for the given context.
-    pub fn new(context: &Context, num_players: usize) -> Registry {
+    pub fn new(context: &Context, num_players: usize, until: Time) -> Registry {
         let mut is = HashMap::new();
         for seat in 0..num_players {
             let player = Player::Seat(seat.try_into().unwrap());
@@ -75,15 +75,60 @@ impl<'ctx> Registry<'ctx> {
                 );
             }
         }
+
+        let is_alive_map = {
+            let mut is_alive = BTreeMap::new();
+            // Populate is_alive[player][time] variable maps.
+            for time in TimeIterator::new(until) {
+                for seat in 0..num_players {
+                    let player = Player::Seat(seat.try_into().unwrap());
+                    is_alive.entry(player).or_insert_with(HashMap::new).insert(
+                        time,
+                        Bool::new_const(format!("is_alive_{:?}_{:?}", player, time)),
+                    );
+                }
+            }
+            is_alive
+        };
+
+        let is_poisoned_map = {
+            let mut is_poisoned = BTreeMap::new();
+            // Populate is_poisoned[player][time] variable maps.
+            for time in TimeIterator::new(until) {
+                for seat in 0..num_players {
+                    let player = Player::Seat(seat.try_into().unwrap());
+                    is_poisoned
+                        .entry(player)
+                        .or_insert_with(HashMap::new)
+                        .insert(
+                            time,
+                            Bool::new_const(format!("is_poisoned_{:?}_{:?}", player, time)),
+                        );
+                }
+            }
+            is_poisoned
+        };
+
+        let is_red_herring_map = {
+            let mut is_red_herring = HashMap::new();
+            for seat in 0..num_players {
+                let player = Player::Seat(seat.try_into().unwrap());
+                is_red_herring.insert(
+                    player,
+                    Bool::new_const(format!("is_red_herring_{:?}", player)),
+                );
+            }
+            is_red_herring
+        };
+
         Registry {
             context,
             num_players: num_players.try_into().unwrap(),
             is_character: is,
 
-            // TODO: actually populate this.
-            is_alive: BTreeMap::new(),
-            is_poisoned: BTreeMap::new(),
-            is_red_herring: HashMap::new(),
+            is_alive: is_alive_map,
+            is_poisoned: is_poisoned_map,
+            is_red_herring: is_red_herring_map,
         }
     }
 
@@ -235,4 +280,62 @@ fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
 
 pub fn foo() -> String {
     return String::from("hello world");
+}
+#[cfg(test)]
+mod tests {
+    use core::panic;
+
+    use super::*;
+    use crate::Character::*;
+    use crate::Evil::*;
+    use crate::Good::*;
+    use crate::Minion::*;
+    use crate::Player::Seat;
+    use crate::Time;
+    use crate::Townsfolk::*;
+    use z3::Solver;
+
+    #[test]
+    fn test_chef_number_1_with_spy_and_5_players() {
+        let solver = Solver::new();
+        let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
+
+        // --- Add General Constraints ---
+        player_has_exactly_one_character(&solver, &registry);
+        character_has_at_most_one_player(&solver, &registry);
+
+        // Round-Robin: CHEF - SPY - INVESTIGATOR - WASHERWOMAN - EMPATH
+        solver.assert(&registry.is_character[&(Seat(0), Good(Townsfolk(Chef)))]);
+        solver.assert(&registry.is_character[&(Seat(1), Evil(Minion(Spy)))]);
+        solver.assert(&registry.is_character[&(Seat(2), Good(Townsfolk(Investigator)))]);
+        solver.assert(&registry.is_character[&(Seat(3), Good(Townsfolk(Washerwoman)))]);
+        solver.assert(&registry.is_character[&(Seat(4), Good(Townsfolk(Empath)))]);
+
+        // --- Initialize is_poisoned map for relevant players/times ---
+        solver.assert(!&registry.is_poisoned[&Seat(0)][&Time::Night(1)]); // Assert Chef is not poisoned
+
+        // --- Add Chef's Claim Log ---
+        // Chef (Player 0) claims a chef number of 1 at Time 0.
+        let chef_claim = ReportLog::OnTime(Time::Night(1), Seat(0), Claim::ChefGets(0));
+        let chef_constraint = constrain(&registry, &vec![], &chef_claim);
+        solver.assert(&chef_constraint);
+
+        // --- Check Satisfiability ---
+        match solver.check() {
+            z3::SatResult::Sat => {
+                // If satisfiable, the configuration (roles + Chef's claim) is valid.
+                println!("Chef number test with Spy is satisfiable as expected.");
+                assert!(
+                    true,
+                    "The configuration should be satisfiable for ChefGets(0)"
+                );
+            }
+            z3::SatResult::Unsat => {
+                panic!("ChefGets(0) should have been SAT, but the solver returned UNSAT.")
+            }
+            z3::SatResult::Unknown => {
+                panic!("ChefGets(0) should have been SAT, but the solver returned UNKNOWN.")
+            }
+        }
+    }
 }
