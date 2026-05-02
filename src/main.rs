@@ -2,6 +2,7 @@ use z3::Solver;
 
 use botc::Time::*;
 use botc::*;
+use z3::ast::Char;
 
 #[allow(unused_variables)]
 fn setup_game() -> Vec<botc::ReportLog> {
@@ -87,6 +88,63 @@ fn setup_game() -> Vec<botc::ReportLog> {
         // 2. Blair (Imp) kills Dom (the Mayor).
         // Result: Dom dies, leaving only the 3 Evil players.
         // ReportLog::OnTime(Night(5), blair, Claim::ImpKills(dom)),
+
+        // Claims
+        ReportLog::OnTime(
+            Night(1),
+            carly,
+            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::FortuneTeller))),
+        ),
+        ReportLog::OnTime(
+            Night(1),
+            john,
+            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Librarian))),
+        ),
+        ReportLog::OnTime(
+            Night(1),
+            brooke,
+            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Undertaker))),
+        ),
+        ReportLog::OnTime(
+            Night(1),
+            adam,
+            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Chef))),
+        ),
+        ReportLog::OnTime(
+            Night(1),
+            isaac,
+            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Monk))),
+        ),
+        ReportLog::OnTime(
+            Night(1),
+            sullivan,
+            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Empath))), // Lying: Actually poisoner
+        ),
+        ReportLog::OnTime(
+            Night(1),
+            laurie,
+            Claim::Am(Character::Good(Good::Outsider(Outsider::Recluse))),
+        ),
+        ReportLog::OnTime(
+            Night(1),
+            dom,
+            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Mayor))),
+        ),
+        ReportLog::OnTime(
+            Night(1),
+            blair,
+            Claim::Am(Character::Good(Good::Outsider(Outsider::Saint))), // Lying
+        ),
+        // let ollie: Player = Player::Seat(0); // Baron
+        // let carly = Player::Seat(1); // Fortune Teller
+        // let john: Player = Player::Seat(2); // Librarian
+        // let brooke = Player::Seat(3); // Drunk / Undertaker
+        // let adam = Player::Seat(4); // Chef
+        // let isaac = Player::Seat(5); // Monk
+        // let sullivan = Player::Seat(6); // Poisoner
+        // let laurie = Player::Seat(7); // Recluse
+        // let dom = Player::Seat(8); // Mayor
+        // let blair = Player::Seat(9); // Imp
     ]
 }
 
@@ -103,6 +161,15 @@ fn main() {
         let ast_constraint = solver::constrain(&registry, &history, &log);
         solver.assert(ast_constraint);
     }
+
+    // Force the chef to be real.
+    solver.assert(
+        registry.is_character[&(
+            Player::Seat(1),
+            Character::Good(Good::Townsfolk(Townsfolk::FortuneTeller)),
+        )]
+            .clone(),
+    );
 
     solver::player_has_exactly_one_character(&solver, &registry);
     solver::character_has_at_most_one_player(&solver, &registry);
@@ -121,7 +188,6 @@ fn main() {
     );
 
     dbg!(solver.check());
-
     let model = solver.get_model().expect("Failed to retrieve model");
     dbg!(model);
 }

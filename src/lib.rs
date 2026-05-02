@@ -172,6 +172,7 @@ impl PartialOrd for Time {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Claim {
+    Am(Character),
     WasherwomanSees(Player, Player, Townsfolk), // https://wiki.bloodontheclocktower.com/Washerwoman
     LibrarianSees(Player, Player, Outsider),    // https://wiki.bloodontheclocktower.com/Librarian
     InvestigatorSees(Player, Player, Minion), // https://wiki.bloodontheclocktower.com/Investigator

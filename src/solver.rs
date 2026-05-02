@@ -17,7 +17,7 @@ pub struct Registry<'ctx> {
     until: Time,
 
     /// Boolean variables that track "Is player X character Y?"
-    is_character: HashMap<(Player, Character), Bool>,
+    pub is_character: HashMap<(Player, Character), Bool>,
 
     /// Boolean variables that track "Is player X alive at the start of time Y?"
     is_alive: BTreeMap<Player, HashMap<Time, Bool>>,
@@ -210,6 +210,13 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
     use Claim::*;
 
     match log {
+        // Character |alpha| claims to be |character|.
+        OnTime(t, alpha, Am(character)) => {
+            let alpha_is_lying = &is_lying(&r, *alpha);
+            let alpha_is_character = r.get(*alpha, *character);
+
+            alpha_is_lying | alpha_is_character
+        }
         // Washerwoman |alpha| sees |bravo| OR |charlie| as character |townsfolk|.
         OnTime(t, alpha, WasherwomanSees(bravo, charlie, townsfolk)) => {
             let alpha_is_washerwoman = r.get(*alpha, Good(Townsfolk(Washerwoman)));
