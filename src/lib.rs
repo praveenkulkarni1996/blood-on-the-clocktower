@@ -118,6 +118,13 @@ impl TimeIterator {
             end,
         }
     }
+
+    pub fn new_with_start(start: Time, end: Time) -> Self {
+        Self {
+            current: start,
+            end,
+        }
+    }
 }
 
 impl Iterator for TimeIterator {

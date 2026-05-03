@@ -472,6 +472,42 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
                 }
             }
         }
+
+        // The town executes the |player| at time |t|.
+        ReportLog::DayExecutes(t, player) => {
+            let day = match t {
+                Time::Day(day) => day,
+                Time::Night(_) => panic!("cannot have night execution"),
+            };
+
+            // A list of variables "Player P is dead at future time T"
+            let player_is_not_alive: Vec<Bool> =
+                TimeIterator::new_with_start(Time::Night(day + 1), r.until)
+                    .into_iter()
+                    .map(|time| !r.is_alive[player][&time].clone())
+                    .collect_vec();
+
+            z3::ast::Bool::and(player_is_not_alive.iter().collect_vec().as_slice())
+        }
+
+        // The player dies at night.
+        // Killed by the Imp who picked them, or Mayor-bounced to them.
+        ReportLog::NightKilled(t, player) => {
+            let night = match t {
+                Time::Day(_) => panic!("cannot have day killing"),
+                Time::Night(night) => night,
+            };
+
+            // A list of variables "Player P is dead at future time T"
+            let player_is_not_alive: Vec<Bool> =
+                TimeIterator::new_with_start(Time::Night(*night), r.until)
+                    .into_iter()
+                    .map(|time| !r.is_alive[player][&time].clone())
+                    .collect_vec();
+
+            z3::ast::Bool::and(player_is_not_alive.iter().collect_vec().as_slice())
+        }
+
         _other => todo!("pending implementation: {:?}", _other), /* TODO: implement the rest of
                                                                   * the claim types. */
     }

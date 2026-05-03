@@ -42,7 +42,7 @@ fn setup_game() -> Vec<botc::ReportLog> {
 
         // DAY-1
         // Laurie (the Recluse) is executed.
-        // ReportLog::Executes(Day(1), laurie),
+        ReportLog::DayExecutes(Time::Day(1), laurie),
         // NIGHT-2
         // 1. Sullivan (Poisoner) poisons Isaac (the Monk).
         // ReportLog::OnTime(Night(2), sullivan, Claim::PoisonerPoisons(isaac)),
@@ -51,7 +51,7 @@ fn setup_game() -> Vec<botc::ReportLog> {
         // 3. Carly (Fortune Teller) selects herself and Dom. (Yes - Red Herring)
         ReportLog::OnTime(Night(2), carly, Claim::FortuneTellerYes(carly, dom)),
         // 4. Blair (Imp) kills John (the Librarian).
-        // ReportLog::OnTime(Night(2), blair, Claim::ImpKills(john)),
+        ReportLog::NightKilled(Night(2), john),
         // 5. Brooke (Undertaker - Drunk) sees Laurie as the Recluse. (Truth)
         ReportLog::OnTime(
             Night(2),
@@ -60,19 +60,20 @@ fn setup_game() -> Vec<botc::ReportLog> {
         ),
         // DAY-2
         // Adam (the Chef) is nominated and executed.
-        // ReportLog::Executes(Day(2), adam),
+        ReportLog::DayExecutes(Day(2), adam),
         // NIGHT-3
         // 1. Sullivan (Poisoner) poisons Carly (the Fortune Teller). (Disables Red Herring)
         // ReportLog::OnTime(Day(2), sullivan, Claim::PoisonerPoisons(carly)),
         // 2. Isaac (Monk) protects Adam. (Wait, Adam is dead - protecting a corpse/sinking kill?)
         // In the game, Isaac protected someone, but Blair killed Brooke.
+        ReportLog::NightKilled(Night(3), brooke),
         // 3. Carly (Fortune Teller) selects herself and Dom. (No - Poisoned)
         ReportLog::OnTime(Night(3), carly, Claim::FortuneTellerNo(carly, dom)),
         // 4. Blair (Imp) kills Brooke (the Drunk).
         // ReportLog::OnTime(Night(3), blair, Claim::ImpKills(brooke)),
         // DAY-3
         // Isaac (the Monk) is nominated and executed.
-        // ReportLog::Executes(Day(3), isaac),
+        ReportLog::DayExecutes(Day(3), isaac),
         // NIGHT-4
         // The Final Five (Blair, Sullivan, Ollie, Carly, Dom) remain.
         // There were no deaths this night.
@@ -80,15 +81,14 @@ fn setup_game() -> Vec<botc::ReportLog> {
         // DAY-4
         // Carly (the Fortune Teller) is executed.
         // Result: Leaving only 4 alive (Blair, Sullivan, Ollie, Dom).
-        // ReportLog::Executes(Day(4), carly),
+        ReportLog::DayExecutes(Day(4), carly),
         // NIGHT-5
         // 1. Sullivan (Poisoner) poisons Dom (the Mayor).
         // Consequence: Disables the "bounce" safety net.
         // ReportLog::OnTime(Night(5), sullivan, Claim::PoisonerPoisons(dom)),
         // 2. Blair (Imp) kills Dom (the Mayor).
         // Result: Dom dies, leaving only the 3 Evil players.
-        // ReportLog::OnTime(Night(5), blair, Claim::ImpKills(dom)),
-
+        ReportLog::NightKilled(Night(5), dom),
         // Claims
         ReportLog::OnTime(
             Night(1),
