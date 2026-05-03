@@ -659,110 +659,30 @@ pub mod setup {
         demon: i8,
     }
 
+    #[rustfmt::skip]
     static BASE_SETUP: &[PlayerCount] = &[
         // 0-4 players is not a valid game.
-        PlayerCount {
-            townsfolk: 0,
-            outsider: 0,
-            minion: 0,
-            demon: 0,
-        },
-        PlayerCount {
-            townsfolk: 0,
-            outsider: 0,
-            minion: 0,
-            demon: 0,
-        },
-        PlayerCount {
-            townsfolk: 0,
-            outsider: 0,
-            minion: 0,
-            demon: 0,
-        },
-        PlayerCount {
-            townsfolk: 0,
-            outsider: 0,
-            minion: 0,
-            demon: 0,
-        },
-        PlayerCount {
-            townsfolk: 0,
-            outsider: 0,
-            minion: 0,
-            demon: 0,
-        },
+        PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 0 invaild
+        PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 1 invalid
+        PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 2 invalid
+        PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 3 invalid
+        PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 4 invalid
         // 5-player and 6-player are Teensyville.
-        // Here: minion and demon are not told each other
-        PlayerCount {
-            townsfolk: 3,
-            outsider: 0,
-            minion: 1,
-            demon: 1,
-        }, // 5
-        PlayerCount {
-            townsfolk: 3,
-            outsider: 1,
-            minion: 1,
-            demon: 1,
-        }, // 6
-        // 7-player games are played in "Ravenswood Bluff".
-        // 1-minion
-        PlayerCount {
-            townsfolk: 5,
-            outsider: 0,
-            minion: 1,
-            demon: 1,
-        }, // 7
-        PlayerCount {
-            townsfolk: 5,
-            outsider: 1,
-            minion: 1,
-            demon: 1,
-        }, // 8
-        PlayerCount {
-            townsfolk: 5,
-            outsider: 2,
-            minion: 1,
-            demon: 1,
-        }, // 9
+        // The minion and demon are not told each other.
+        PlayerCount { townsfolk: 3, outsider: 0, minion: 1, demon: 1}, // 5
+        PlayerCount { townsfolk: 3, outsider: 1, minion: 1, demon: 1}, // 6
+        // 1-minion evil team.
+        PlayerCount { townsfolk: 5, outsider: 0, minion: 1, demon: 1}, // 7
+        PlayerCount { townsfolk: 5, outsider: 1, minion: 1, demon: 1}, // 8
+        PlayerCount { townsfolk: 5, outsider: 2, minion: 1, demon: 1}, // 9
         // 2 minion evil team.
-        PlayerCount {
-            townsfolk: 7,
-            outsider: 0,
-            minion: 2,
-            demon: 1,
-        }, // 10
-        PlayerCount {
-            townsfolk: 7,
-            outsider: 1,
-            minion: 2,
-            demon: 1,
-        }, // 11
-        PlayerCount {
-            townsfolk: 7,
-            outsider: 2,
-            minion: 2,
-            demon: 1,
-        }, // 12
+        PlayerCount { townsfolk: 7, outsider: 0, minion: 2, demon: 1}, // 10
+        PlayerCount { townsfolk: 7, outsider: 1, minion: 2, demon: 1}, // 11
+        PlayerCount { townsfolk: 7, outsider: 2, minion: 2, demon: 1}, // 12
         // 3-minion evil team.
-        PlayerCount {
-            townsfolk: 9,
-            outsider: 0,
-            minion: 3,
-            demon: 1,
-        }, // 13
-        PlayerCount {
-            townsfolk: 9,
-            outsider: 1,
-            minion: 3,
-            demon: 1,
-        }, // 14
-        PlayerCount {
-            townsfolk: 9,
-            outsider: 2,
-            minion: 3,
-            demon: 1,
-        }, // 15
+        PlayerCount { townsfolk: 9, outsider: 0, minion: 3, demon: 1}, // 13
+        PlayerCount { townsfolk: 9, outsider: 1, minion: 3, demon: 1}, // 14
+        PlayerCount { townsfolk: 9, outsider: 2, minion: 3, demon: 1}, // 15
     ];
 
     fn is_baron(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
