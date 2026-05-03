@@ -98,6 +98,11 @@ pub enum LiveOrDie {
 /// Somewhat annoyingly, the Blood on the Clocktower has decided that it will
 /// follow a 1-indexed night naming convention, i.e. we have:
 /// Night-1, Day-1, Night-2, etc.
+///
+/// Since we have a custom "equality" function, but a regular hash() - rust is
+/// worried that we will define a == b but hash(a) != hash(b). I promise to not
+/// do that, dear clippy - so please silence this warning.
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Debug, Clone, Copy, Hash)]
 pub enum Time {
     Night(i32),
@@ -154,7 +159,7 @@ impl Ord for Time {
                 Time::Day(x) => (2 * x) + 1,
             }
         }
-        return canonicalize(self).cmp(&canonicalize(other));
+        canonicalize(self).cmp(&canonicalize(other))
     }
 }
 
