@@ -415,22 +415,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             // TODO: Add checks that |bravo| is the previously executed player from
             // |history|. If we do not do that, then this essentially becomes a
             // RavenKeeper.
-
-            let alpha_is_undertaker = r.get(*alpha, Good(Townsfolk(Undertaker)));
-            let alpha_is_lying = &is_lying(r, *alpha);
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-
-            let bravo_is_spy = r.get(*bravo, Evil(Minion(Spy)));
-            let bravo_is_recluse = r.get(*bravo, Good(Outsider(Recluse)));
-            let bravo_is_character = r.get(*bravo, *character);
-
-            let bravo_constraint = match character {
-                Good(_) => bravo_is_character | bravo_is_spy,
-                Evil(_) => bravo_is_character | bravo_is_recluse,
-            };
-
-            (alpha_is_lying | alpha_is_undertaker)
-                & alpha_is_undertaker.implies(alpha_is_poisoned | bravo_constraint)
+            player_claims_character(r, *alpha, Good(Townsfolk(Undertaker)))
+                & player_sees_other_players_character(r, alpha, bravo, *character, t)
         }
 
         // Ravenkeeper |alpha| sees the |bravo| as the |character|.
@@ -445,24 +431,18 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let alpha_is_dead_in_the_night = &!r.is_alive[alpha][t].clone();
             let alpha_just_died = alpha_is_alive_in_the_day & alpha_is_dead_in_the_night;
 
-            let alpha_is_ravenskeeper = r.get(*alpha, Good(Townsfolk(Ravenkeeper)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
+            alpha_just_died
+                & player_claims_character(r, *alpha, Good(Townsfolk(Ravenkeeper)))
+                & player_sees_other_players_character(r, alpha, bravo, *character, t)
+        }
 
-            let bravo_is_spy = r.get(*bravo, Evil(Minion(Spy)));
-            let bravo_is_recluse = r.get(*bravo, Good(Outsider(Recluse)));
-            let bravo_is_character = r.get(*bravo, *character);
-
-            match character {
-                Good(_) => {
-                    (alpha_is_ravenskeeper & !alpha_is_poisoned & !alpha_is_drunk & alpha_just_died)
-                        .implies(bravo_is_character | bravo_is_spy)
-                }
-                Evil(_) => {
-                    (alpha_is_ravenskeeper & !alpha_is_poisoned & !alpha_is_drunk & alpha_just_died)
-                        .implies(bravo_is_character | bravo_is_recluse)
-                }
-            }
+        // The player |alpha| claims soldier, and is killed in the night.
+        ReportLog::OnTime(t, alpha, Claim::SoldierNightKilled) => {
+            player_unexpected_night_killed(r, alpha, t)
+        }
+        // The player |alpha| claims monk, and his protected player died in the night.
+        ReportLog::OnTime(t, alpha, Claim::MonkProtectedNightKilled) => {
+            player_unexpected_night_killed(r, alpha, t)
         }
 
         // The town executes the |player| at time |t|.
@@ -648,6 +628,46 @@ pub fn mark_characters_not_in_play(solver: &Solver, registry: &Registry, charact
     for c in characters.iter() {
         let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), *c));
         solver.assert(z3::ast::atmost(_players, 0));
+    }
+}
+
+// A supposedly-immune player has un-expectedly died in the night.
+fn player_unexpected_night_killed(r: &Registry, defender: &Player, time: &Time) -> Bool {
+    let is_defender_lying: Bool = is_lying(r, *defender);
+    let is_defender_poisoned: &Bool = &r.is_poisoned[defender][time];
+
+    is_defender_lying | is_defender_poisoned
+}
+
+/// A player claims to be a character.
+fn player_claims_character(r: &Registry, claimant: Player, character: Character) -> Bool {
+    is_lying(r, claimant) ^ r.get(claimant, character)
+}
+
+/// A player (e.g. Ravenskeeper, Undertaker) sees another player's token.
+fn player_sees_other_players_character(
+    r: &Registry,
+    seer: &Player,
+    target: &Player,
+    token: Character,
+    t: &Time,
+) -> Bool {
+    use botc_core::Character::{Evil, Good};
+    use botc_core::Evil::*;
+    use botc_core::Good::*;
+    use botc_core::Minion::*;
+    use botc_core::Outsider::*;
+
+    let seer_lied: Bool = is_lying(r, *seer);
+    let seer_is_poisoned: &Bool = &r.is_poisoned[seer][t];
+    let target_is_correct: &Bool = r.get(*target, token);
+
+    let target_is_spy = r.get(*target, Evil(Minion(Spy)));
+    let target_is_recluse = r.get(*target, Good(Outsider(Recluse)));
+
+    match token {
+        Good(_) => (!seer_is_poisoned & !seer_lied).implies(target_is_correct | target_is_spy),
+        Evil(_) => (!seer_is_poisoned & !seer_lied).implies(target_is_correct | target_is_recluse),
     }
 }
 

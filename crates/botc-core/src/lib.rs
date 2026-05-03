@@ -198,7 +198,8 @@ pub enum Claim {
                                              * LiveOrDie */
     SlayerShoots(Player, LiveOrDie), // Slayer shoots the `Player` who will LiveOrDie
 
-    MonkClaims(),
+    MonkProtectedNightKilled,
+    SoldierNightKilled,
     // TODO: It might be worth it to take a good look at minion events.
     // In particular, I think most of these might not be very useful.
     // These are primarily there for debugging purposes.
