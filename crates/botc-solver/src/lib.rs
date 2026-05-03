@@ -196,7 +196,6 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
     use botc_core::Demon::*;
     use botc_core::Evil::*;
     use botc_core::Good::*;
-    use botc_core::Minion::*;
     use botc_core::Outsider::*;
     use botc_core::ReportLog::OnTime;
     use botc_core::Townsfolk::*;
@@ -211,73 +210,41 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         }
         // Washerwoman |alpha| sees |bravo| OR |charlie| as character |townsfolk|.
         OnTime(t, alpha, WasherwomanSees(bravo, charlie, townsfolk)) => {
-            let alpha_is_washerwoman = r.get(*alpha, Good(Townsfolk(Washerwoman)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-
-            let bravo_is_correct = r.get(*bravo, Good(Townsfolk(*townsfolk)));
-            let charlie_is_correct = r.get(*charlie, Good(Townsfolk(*townsfolk)));
-
-            let bravo_is_sober_spy =
-                r.get(*bravo, Evil(Minion(Spy))) & r.is_poisoned[bravo][t].not();
-            let charlie_is_sober_spy =
-                r.get(*charlie, Evil(Minion(Spy))) & r.is_poisoned[charlie][t].not();
-
-            (alpha_is_washerwoman & !alpha_is_poisoned).implies(
-                alpha_is_drunk
-                    | bravo_is_correct
-                    | charlie_is_correct
-                    | bravo_is_sober_spy
-                    | charlie_is_sober_spy,
-            )
+            player_claims_character(r, *alpha, Good(Townsfolk(Washerwoman)))
+                & see_character_between_player_pair(
+                    r,
+                    *alpha,
+                    *bravo,
+                    *charlie,
+                    Good(Townsfolk(*townsfolk)),
+                    *t,
+                )
         }
 
         // Librarian |alpha| sees that either |bravo| OR |charlie| is the Outsider |outsider|.
         OnTime(t, alpha, LibrarianSees(bravo, charlie, outsider)) => {
-            let alpha_is_librarian = r.get(*alpha, Good(Townsfolk(Librarian)));
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-            let alpha_is_lying = &is_lying(r, *alpha);
-
-            let bravo_is_correct = r.get(*bravo, Good(Outsider(*outsider)));
-            let charlie_is_correct = r.get(*charlie, Good(Outsider(*outsider)));
-
-            let bravo_is_sober_spy =
-                r.get(*bravo, Evil(Minion(Spy))) & r.is_poisoned[bravo][t].not();
-
-            let charlie_is_sober_spy =
-                r.get(*charlie, Evil(Minion(Spy))) & r.is_poisoned[charlie][t].not();
-
-            (alpha_is_librarian | alpha_is_lying)
-                & (alpha_is_librarian).implies(
-                    alpha_is_poisoned
-                        | bravo_is_correct
-                        | charlie_is_correct
-                        | bravo_is_sober_spy
-                        | charlie_is_sober_spy,
+            player_claims_character(r, *alpha, Good(Townsfolk(Librarian)))
+                & see_character_between_player_pair(
+                    r,
+                    *alpha,
+                    *bravo,
+                    *charlie,
+                    Good(Outsider(*outsider)),
+                    *t,
                 )
         }
 
         // Investigator |alpha| sees that either |bravo| OR |charlie| is the Minion |minion|.
         OnTime(t, alpha, InvestigatorSees(bravo, charlie, minion)) => {
-            let alpha_is_investigator: &Bool = r.get(*alpha, Good(Townsfolk(Investigator)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-
-            let bravo_is_correct = r.get(*bravo, Evil(Minion(*minion)));
-            let charlie_is_correct = r.get(*charlie, Evil(Minion(*minion)));
-
-            let bravo_is_sober_recluse =
-                r.get(*bravo, Good(Outsider(Recluse))) & r.is_poisoned[bravo][t].not();
-            let charlie_is_sober_recluse =
-                r.get(*charlie, Good(Outsider(Recluse))) & r.is_poisoned[charlie][t].not();
-
-            (alpha_is_investigator & !alpha_is_poisoned).implies(
-                alpha_is_drunk
-                    | bravo_is_correct
-                    | charlie_is_correct
-                    | bravo_is_sober_recluse
-                    | charlie_is_sober_recluse,
-            )
+            player_claims_character(r, *alpha, Good(Townsfolk(Investigator)))
+                & see_character_between_player_pair(
+                    r,
+                    *alpha,
+                    *bravo,
+                    *charlie,
+                    Evil(Minion(*minion)),
+                    *t,
+                )
         }
 
         // Chef |alpha| gets the number |num|. This means that |num| players (other than |alpha|)
@@ -669,6 +636,40 @@ fn player_sees_other_players_character(
         Good(_) => (!seer_is_poisoned & !seer_lied).implies(target_is_correct | target_is_spy),
         Evil(_) => (!seer_is_poisoned & !seer_lied).implies(target_is_correct | target_is_recluse),
     }
+}
+
+fn see_character_between_player_pair(
+    r: &Registry,
+    seer: Player,
+    a: Player,
+    b: Player,
+    token: Character,
+    time: Time,
+) -> Bool {
+    use botc_core::Character::{Evil, Good};
+    use botc_core::Evil::*;
+    use botc_core::Good::*;
+    use botc_core::Minion::*;
+    use botc_core::Outsider::*;
+
+    let seer_lied: Bool = is_lying(r, seer);
+    let seer_is_poisoned: &Bool = &r.is_poisoned[&seer][&time];
+
+    let a_is_correct = r.get(a, token);
+    let b_is_correct = r.get(b, token);
+
+    let a_is_spy = r.get(a, Evil(Minion(Spy)));
+    let b_is_spy = r.get(b, Evil(Minion(Spy)));
+
+    let a_is_recluse = r.get(a, Good(Outsider(Recluse)));
+    let b_is_recluse = r.get(b, Good(Outsider(Recluse)));
+
+    let valid: Bool = match token {
+        Good(_) => a_is_correct | b_is_correct | a_is_spy | b_is_spy,
+        Evil(_) => a_is_correct | b_is_correct | a_is_recluse | b_is_recluse,
+    };
+
+    (!seer_lied & !seer_is_poisoned).implies(valid)
 }
 
 #[cfg(test)]
