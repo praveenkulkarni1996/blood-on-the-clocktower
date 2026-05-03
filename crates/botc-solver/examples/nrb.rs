@@ -169,6 +169,7 @@ fn main() {
     botc_solver::poisoner_can_poison_one_person_only_if_alive(&solver, &registry);
     botc_solver::poisoning_does_not_move_during_the_day(&solver, &registry);
     solver.assert(botc_solver::setup::assert_player_count_rules(&registry));
+    solver.assert(botc_solver::life::assert_life_until_death(&registry));
     botc_solver::mark_characters_not_in_play(
         &solver,
         &registry,

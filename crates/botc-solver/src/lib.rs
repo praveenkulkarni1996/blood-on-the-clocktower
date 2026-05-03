@@ -9,6 +9,7 @@ use botc_core::Player::Seat;
 use botc_core::{Character, Claim, Time, TimeIterator};
 use botc_core::{Player, ReportLog};
 
+pub mod life;
 pub mod setup;
 
 pub struct Registry<'ctx> {
