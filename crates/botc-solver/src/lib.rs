@@ -172,7 +172,7 @@ impl<'ctx> Registry<'ctx> {
         Registry {
             _context: context,
             num_players: num_players.try_into().unwrap(),
-            until: until,
+            until,
 
             is_character: is,
             is_alive: is_alive_map,
@@ -201,7 +201,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
     match log {
         // Character |alpha| claims to be |character|.
         OnTime(_t, alpha, Am(character)) => {
-            let alpha_is_lying = &is_lying(&r, *alpha);
+            let alpha_is_lying = &is_lying(r, *alpha);
             let alpha_is_character = r.get(*alpha, *character);
 
             alpha_is_lying | alpha_is_character
@@ -210,15 +210,15 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         OnTime(t, alpha, WasherwomanSees(bravo, charlie, townsfolk)) => {
             let alpha_is_washerwoman = r.get(*alpha, Good(Townsfolk(Washerwoman)));
             let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             let bravo_is_correct = r.get(*bravo, Good(Townsfolk(*townsfolk)));
             let charlie_is_correct = r.get(*charlie, Good(Townsfolk(*townsfolk)));
 
             let bravo_is_sober_spy =
-                r.get(*bravo, Evil(Minion(Spy))) & r.is_poisoned[&bravo][&t].not();
+                r.get(*bravo, Evil(Minion(Spy))) & r.is_poisoned[bravo][t].not();
             let charlie_is_sober_spy =
-                r.get(*charlie, Evil(Minion(Spy))) & r.is_poisoned[&charlie][&t].not();
+                r.get(*charlie, Evil(Minion(Spy))) & r.is_poisoned[charlie][t].not();
 
             (alpha_is_washerwoman & !alpha_is_poisoned).implies(
                 alpha_is_drunk
@@ -232,17 +232,17 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         // Librarian |alpha| sees that either |bravo| OR |charlie| is the Outsider |outsider|.
         OnTime(t, alpha, LibrarianSees(bravo, charlie, outsider)) => {
             let alpha_is_librarian = r.get(*alpha, Good(Townsfolk(Librarian)));
-            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
-            let alpha_is_lying = &is_lying(&r, *alpha);
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
+            let alpha_is_lying = &is_lying(r, *alpha);
 
             let bravo_is_correct = r.get(*bravo, Good(Outsider(*outsider)));
             let charlie_is_correct = r.get(*charlie, Good(Outsider(*outsider)));
 
             let bravo_is_sober_spy =
-                r.get(*bravo, Evil(Minion(Spy))) & r.is_poisoned[&bravo][&t].not();
+                r.get(*bravo, Evil(Minion(Spy))) & r.is_poisoned[bravo][t].not();
 
             let charlie_is_sober_spy =
-                r.get(*charlie, Evil(Minion(Spy))) & r.is_poisoned[&charlie][&t].not();
+                r.get(*charlie, Evil(Minion(Spy))) & r.is_poisoned[charlie][t].not();
 
             (alpha_is_librarian | alpha_is_lying)
                 & (alpha_is_librarian).implies(
@@ -258,15 +258,15 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         OnTime(t, alpha, InvestigatorSees(bravo, charlie, minion)) => {
             let alpha_is_investigator: &Bool = r.get(*alpha, Good(Townsfolk(Investigator)));
             let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             let bravo_is_correct = r.get(*bravo, Evil(Minion(*minion)));
             let charlie_is_correct = r.get(*charlie, Evil(Minion(*minion)));
 
             let bravo_is_sober_recluse =
-                r.get(*bravo, Good(Outsider(Recluse))) & r.is_poisoned[&bravo][&t].not();
+                r.get(*bravo, Good(Outsider(Recluse))) & r.is_poisoned[bravo][t].not();
             let charlie_is_sober_recluse =
-                r.get(*charlie, Good(Outsider(Recluse))) & r.is_poisoned[&charlie][&t].not();
+                r.get(*charlie, Good(Outsider(Recluse))) & r.is_poisoned[charlie][t].not();
 
             (alpha_is_investigator & !alpha_is_poisoned).implies(
                 alpha_is_drunk
@@ -303,8 +303,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let chef_correct = chef_min & chef_max;
 
             let alpha_is_chef = r.get(*alpha, Good(Townsfolk(Chef)));
-            let alpha_is_lying = &is_lying(&r, *alpha);
-            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+            let alpha_is_lying = &is_lying(r, *alpha);
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             (alpha_is_lying | alpha_is_chef)
                 & alpha_is_chef.implies(alpha_is_poisoned | chef_correct)
@@ -316,7 +316,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             // neighbors.
             let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
             let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             alpha_is_empath.implies(
                 alpha_is_poisoned
@@ -331,7 +331,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             // neighbors.
             let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
             let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             alpha_is_empath.implies(
                 alpha_is_poisoned
@@ -347,7 +347,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             // neighbors.
             let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
             let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             alpha_is_empath.implies(
                 alpha_is_poisoned
@@ -359,8 +359,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         // FortuneTeller |alpha| gets a YES on |bravo| and |charlie|.
         OnTime(t, alpha, FortuneTellerYes(bravo, charlie)) => {
             let alpha_is_fortune_teller: &Bool = r.get(*alpha, Good(Townsfolk(FortuneTeller)));
-            let alpha_is_lying = &is_lying(&r, *alpha);
-            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+            let alpha_is_lying = &is_lying(r, *alpha);
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             let bravo_is_demon = r.get(*bravo, Evil(Demon(Imp)));
             let charlie_is_demon = r.get(*charlie, Evil(Demon(Imp)));
@@ -369,9 +369,9 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let charlie_is_red_herring = &r.is_red_herring[charlie];
 
             let bravo_is_sober_recluse =
-                r.get(*bravo, Good(Outsider(Recluse))) & r.is_poisoned[&bravo][&t].not();
+                r.get(*bravo, Good(Outsider(Recluse))) & r.is_poisoned[bravo][t].not();
             let charlie_is_sober_recluse =
-                r.get(*charlie, Good(Outsider(Recluse))) & r.is_poisoned[&charlie][&t].not();
+                r.get(*charlie, Good(Outsider(Recluse))) & r.is_poisoned[charlie][t].not();
 
             (alpha_is_lying | alpha_is_fortune_teller)
                 & alpha_is_fortune_teller.implies(
@@ -388,8 +388,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         // FortuneTeller |alpha| gets a NO on |bravo| and |charlie|.
         OnTime(t, alpha, FortuneTellerNo(bravo, charlie)) => {
             let alpha_is_fortune_teller: &Bool = r.get(*alpha, Good(Townsfolk(FortuneTeller)));
-            let alpha_is_lying = &is_lying(&r, *alpha);
-            let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
+            let alpha_is_lying = &is_lying(r, *alpha);
+            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             let bravo_is_demon = r.get(*bravo, Evil(Demon(Imp)));
             let charlie_is_demon = r.get(*charlie, Evil(Demon(Imp)));
@@ -414,7 +414,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             // RavenKeeper.
 
             let alpha_is_undertaker = r.get(*alpha, Good(Townsfolk(Undertaker)));
-            let alpha_is_lying = &is_lying(&r, *alpha);
+            let alpha_is_lying = &is_lying(r, *alpha);
             let alpha_is_poisoned = &r.is_poisoned[alpha][t];
 
             let bravo_is_spy = r.get(*bravo, Evil(Minion(Spy)));
@@ -472,7 +472,6 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             // A list of variables "Player P is dead at future time T"
             let player_is_not_alive: Vec<Bool> =
                 TimeIterator::new_with_start(Time::Night(day + 1), r.until)
-                    .into_iter()
                     .map(|time| !r.is_alive[player][&time].clone())
                     .collect_vec();
 
@@ -491,7 +490,6 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             // A list of variables "Player P is dead at future time T"
             let player_is_not_alive: Vec<Bool> =
                 TimeIterator::new_with_start(Time::Night(*night), r.until)
-                    .into_iter()
                     .map(|time| !r.is_alive[player][&time].clone())
                     .collect_vec();
 
@@ -563,7 +561,7 @@ pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registr
     for time in TimeIterator::new(r.until) {
         let is_someone_alive_poisoner = {
             let is_player_alive_poisoner = (0..r.num_players)
-                .map(|seat| Seat(seat))
+                .map(Seat)
                 .map(|player| is_alive_poisoner(&player, &time))
                 .collect_vec();
 
@@ -572,7 +570,7 @@ pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registr
 
         let is_someone_poisoned = {
             let is_player_poisoned = (0..r.num_players)
-                .map(|seat| Seat(seat))
+                .map(Seat)
                 .map(|player| &r.is_poisoned[&player][&time]);
 
             z3::ast::atmost(is_player_poisoned, 1)
@@ -580,7 +578,7 @@ pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registr
 
         let is_no_one_poisoned = {
             let _is_player_poisoned = (0..r.num_players)
-                .map(|seat| Seat(seat))
+                .map(Seat)
                 .map(|player| &r.is_poisoned[&player][&time]);
             z3::ast::atmost(_is_player_poisoned, 0)
         };
@@ -610,14 +608,13 @@ pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registr
 /// reconsider simplifying or extending this in the future.
 pub fn poisoning_does_not_move_during_the_day(solver: &Solver, registry: &Registry) {
     let days: Vec<i32> = TimeIterator::new(registry.until)
-        .into_iter()
         .filter_map(|time| match time {
             Time::Day(x) => Some(x),
             _ => None,
         })
         .collect_vec();
 
-    let players = (0..registry.num_players).map(|x| Seat(x)).collect_vec();
+    let players = (0..registry.num_players).map(Seat).collect_vec();
 
     for player in players {
         for &day in days.iter() {
@@ -637,18 +634,14 @@ fn assert_character_is_alive(r: &Registry, c: Character, time: Time) -> z3::ast:
     };
 
     let is_player_alive_character: Vec<z3::ast::Bool> = (0..r.num_players)
-        .map(|seat| Seat(seat))
+        .map(Seat)
         .map(is_alive_character)
         .collect_vec();
 
     z3::ast::Bool::or(is_player_alive_character.iter().collect_vec().as_slice())
 }
 
-pub fn mark_characters_not_in_play(
-    solver: &Solver,
-    registry: &Registry,
-    characters: &Vec<Character>,
-) {
+pub fn mark_characters_not_in_play(solver: &Solver, registry: &Registry, characters: &[Character]) {
     for c in characters.iter() {
         let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), *c));
         solver.assert(z3::ast::atmost(_players, 0));
@@ -666,7 +659,7 @@ pub mod setup {
         demon: i8,
     }
 
-    static BASE_SETUP: &'static [PlayerCount] = &[
+    static BASE_SETUP: &[PlayerCount] = &[
         // 0-4 players is not a valid game.
         PlayerCount {
             townsfolk: 0,
