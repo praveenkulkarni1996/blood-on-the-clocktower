@@ -1,8 +1,6 @@
 /// This is only supporting Trouble Brewing.
 use strum::{EnumIter, IntoEnumIterator};
 
-pub mod solver;
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, EnumIter, Hash, PartialOrd, Ord)]
 pub enum Player {
     Unresolved,
