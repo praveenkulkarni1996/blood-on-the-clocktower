@@ -10,6 +10,7 @@ use botc_core::{Character, Claim, Time, TimeIterator};
 use botc_core::{Player, ReportLog};
 
 pub mod life;
+pub mod registers;
 pub mod setup;
 
 pub struct Registry<'ctx> {
@@ -49,101 +50,12 @@ fn is_lying(r: &Registry, p: Player) -> z3::ast::Bool {
         | r.get(p, Evil(Demon(Imp)))
 }
 
-fn must_register_evil(r: &Registry, p: &Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
-    use botc_core::Demon::*;
-    use botc_core::Evil::*;
-    use botc_core::Minion::*;
-
-    r.get(*p, Evil(Minion(Baron)))
-        | r.get(*p, Evil(Minion(Poisoner)))
-        | r.get(*p, Evil(Minion(ScarletWoman)))
-        | r.get(*p, Evil(Demon(Imp)))
-}
-
-fn can_register_evil(r: &Registry, p: &Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
-    use botc_core::Demon::*;
-    use botc_core::Evil::*;
-    use botc_core::Good::*;
-    use botc_core::Minion::*;
-    use botc_core::Outsider::*;
-
-    r.get(*p, Evil(Minion(Baron)))
-        | r.get(*p, Evil(Minion(Poisoner)))
-        | r.get(*p, Evil(Minion(ScarletWoman)))
-        | r.get(*p, Evil(Minion(Spy)))
-        | r.get(*p, Evil(Demon(Imp)))
-        | r.get(*p, Good(Outsider(Recluse)))
-}
-
-fn can_register_good(r: &Registry, p: &Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
-    use botc_core::Evil::*;
-    use botc_core::Good::*;
-    use botc_core::Minion::*;
-    use botc_core::Outsider::*;
-    use botc_core::Townsfolk::*;
-
-    r.get(*p, Good(Townsfolk(Washerwoman)))
-        | r.get(*p, Good(Townsfolk(Librarian)))
-        | r.get(*p, Good(Townsfolk(Investigator)))
-        | r.get(*p, Good(Townsfolk(Chef)))
-        | r.get(*p, Good(Townsfolk(Empath)))
-        | r.get(*p, Good(Townsfolk(FortuneTeller)))
-        | r.get(*p, Good(Townsfolk(Undertaker)))
-        | r.get(*p, Good(Townsfolk(Monk)))
-        | r.get(*p, Good(Townsfolk(Ravenkeeper)))
-        | r.get(*p, Good(Townsfolk(Virgin)))
-        | r.get(*p, Good(Townsfolk(Slayer)))
-        | r.get(*p, Good(Townsfolk(Soldier)))
-        | r.get(*p, Good(Townsfolk(Mayor)))
-        | r.get(*p, Good(Outsider(Recluse)))
-        | r.get(*p, Good(Outsider(Saint)))
-        | r.get(*p, Good(Outsider(Butler)))
-        | r.get(*p, Good(Outsider(Drunk)))
-        | r.get(*p, Evil(Minion(Spy)))
-}
-
-fn can_register_townsfolk(r: &Registry, p: &Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
-    use botc_core::Evil::*;
-    use botc_core::Good::*;
-    use botc_core::Minion::*;
-    use botc_core::Townsfolk::*;
-
-    r.get(*p, Good(Townsfolk(Washerwoman)))
-        | r.get(*p, Good(Townsfolk(Librarian)))
-        | r.get(*p, Good(Townsfolk(Investigator)))
-        | r.get(*p, Good(Townsfolk(Chef)))
-        | r.get(*p, Good(Townsfolk(Empath)))
-        | r.get(*p, Good(Townsfolk(FortuneTeller)))
-        | r.get(*p, Good(Townsfolk(Undertaker)))
-        | r.get(*p, Good(Townsfolk(Monk)))
-        | r.get(*p, Good(Townsfolk(Ravenkeeper)))
-        | r.get(*p, Good(Townsfolk(Virgin)))
-        | r.get(*p, Good(Townsfolk(Slayer)))
-        | r.get(*p, Good(Townsfolk(Soldier)))
-        | r.get(*p, Good(Townsfolk(Mayor)))
-        | r.get(*p, Evil(Minion(Spy)))
-}
-
-fn can_register_demon(r: &Registry, p: &Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
-    use botc_core::Demon::*;
-    use botc_core::Evil::*;
-    use botc_core::Good::*;
-    use botc_core::Outsider::*;
-
-    r.get(*p, Good(Outsider(Recluse))) | r.get(*p, Evil(Demon(Imp)))
-}
-
 fn must_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
-    must_register_evil(r, p1) & must_register_evil(r, p2)
+    registers::must_evil(r, p1) & registers::must_evil(r, p2)
 }
 
 fn can_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
-    can_register_evil(r, p1) & can_register_evil(r, p2)
+    registers::can_evil(r, p1) & registers::can_evil(r, p2)
 }
 
 impl<'ctx> Registry<'ctx> {
@@ -324,7 +236,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             alpha_is_empath.implies(
                 alpha_is_poisoned
                     | alpha_is_drunk
-                    | (can_register_good(r, bravo) & can_register_good(r, charlie)),
+                    | (registers::can_good(r, bravo) & registers::can_good(r, charlie)),
             )
         }
 
@@ -339,8 +251,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             alpha_is_empath.implies(
                 alpha_is_poisoned
                     | alpha_is_drunk
-                    | (can_register_good(r, bravo) & can_register_evil(r, charlie))
-                    | (can_register_evil(r, bravo) & can_register_good(r, charlie)),
+                    | (registers::can_good(r, bravo) & registers::can_evil(r, charlie))
+                    | (registers::can_evil(r, bravo) & registers::can_good(r, charlie)),
             )
         }
 
@@ -355,7 +267,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             alpha_is_empath.implies(
                 alpha_is_poisoned
                     | alpha_is_drunk
-                    | (can_register_evil(r, bravo) & can_register_evil(r, charlie)),
+                    | (registers::can_evil(r, bravo) & registers::can_evil(r, charlie)),
             )
         }
 
@@ -443,26 +355,26 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         OnTime(t, alpha, VirginKillsTownsfolk(nominator)) => {
             player_must_character(r, *alpha, Good(Townsfolk(Virgin)))
                 & is_effective(r, *alpha, *t)
-                & can_register_townsfolk(r, nominator)
+                & registers::can_townsfolk(r, nominator)
         }
 
         // The supposed-virgin |virgin| is unable to kill the first |nominator|.
         OnTime(t, virgin, VirginMisses(nominator)) => {
             player_claims_character(r, *virgin, Good(Townsfolk(Virgin)))
-                & (!is_effective(r, *virgin, *t) ^ !setup::is_townsfolk(r, *nominator))
+                & (!is_effective(r, *virgin, *t) ^ !registers::must_townsfolk(r, *nominator))
         }
 
         // The player |slayer| is able to kill the |target|.
         OnTime(t, slayer, SlayerKillsDemon(target)) => {
             player_must_character(r, *slayer, Good(Townsfolk(Slayer)))
                 & is_effective(r, *slayer, *t)
-                & can_register_demon(r, target)
+                & registers::can_demon(r, target)
         }
 
         // The supposed-slayer |slayer| is unable to kill their |target|.
         OnTime(t, slayer, SlayerMisses(target)) => {
             player_claims_character(r, *slayer, Good(Townsfolk(Slayer)))
-                & (!is_effective(r, *slayer, *t) ^ !setup::is_demon(r, *target))
+                & (!is_effective(r, *slayer, *t) ^ !registers::must_demon(r, *target))
         }
 
         // The town executes the |player| at time |t|.
@@ -668,21 +580,7 @@ fn player_sees_other_players_character(
     token: Character,
     t: &Time,
 ) -> Bool {
-    use botc_core::Character::{Evil, Good};
-    use botc_core::Evil::*;
-    use botc_core::Good::*;
-    use botc_core::Minion::*;
-    use botc_core::Outsider::*;
-
-    let target_is_correct: &Bool = r.get(*target, token);
-
-    let target_is_spy = r.get(*target, Evil(Minion(Spy)));
-    let target_is_recluse = r.get(*target, Good(Outsider(Recluse)));
-
-    match token {
-        Good(_) => is_effective(r, *seer, *t).implies(target_is_correct | target_is_spy),
-        Evil(_) => is_effective(r, *seer, *t).implies(target_is_correct | target_is_recluse),
-    }
+    is_effective(r, *seer, *t).implies(registers::as_token(r, *target, token))
 }
 
 // Validates that a player's ablity should correctly have the right effect.
@@ -701,27 +599,8 @@ fn see_character_between_player_pair(
     token: Character,
     time: Time,
 ) -> Bool {
-    use botc_core::Character::{Evil, Good};
-    use botc_core::Evil::*;
-    use botc_core::Good::*;
-    use botc_core::Minion::*;
-    use botc_core::Outsider::*;
-
-    let a_is_correct = r.get(a, token);
-    let b_is_correct = r.get(b, token);
-
-    let a_is_spy = r.get(a, Evil(Minion(Spy)));
-    let b_is_spy = r.get(b, Evil(Minion(Spy)));
-
-    let a_is_recluse = r.get(a, Good(Outsider(Recluse)));
-    let b_is_recluse = r.get(b, Good(Outsider(Recluse)));
-
-    let valid: Bool = match token {
-        Good(_) => a_is_correct | b_is_correct | a_is_spy | b_is_spy,
-        Evil(_) => a_is_correct | b_is_correct | a_is_recluse | b_is_recluse,
-    };
-
-    is_effective(r, seer, time).implies(valid)
+    is_effective(r, seer, time)
+        .implies(registers::as_token(r, a, token) | registers::as_token(r, b, token))
 }
 
 #[cfg(test)]
