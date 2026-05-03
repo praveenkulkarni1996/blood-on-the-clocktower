@@ -556,7 +556,7 @@ pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registr
 
     let is_alive_poisoner = |player: &Player, t: &Time| -> z3::ast::Bool {
         let is_alive = &r.is_alive[player][t];
-        let is_poisoner = &r.is_character[&(*player, Evil(Minion(Poisoner)))];
+        let is_poisoner = r.get(*player, Evil(Minion(Poisoner)));
         is_alive & is_poisoner
     };
 

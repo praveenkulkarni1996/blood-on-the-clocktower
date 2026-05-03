@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 pub fn assert_player_count_rules(r: &super::Registry) -> z3::ast::Bool {
-    let base_setup: PlayerCount = BASE_SETUP[r.num_players as usize].clone();
+    let base_setup: PlayerCount = BASE_SETUP[r.num_players as usize];
     let baron_setup: PlayerCount = PlayerCount {
         townsfolk: base_setup.townsfolk - 2,
         outsider: base_setup.outsider + 2,
@@ -19,7 +19,7 @@ pub fn assert_player_count_rules(r: &super::Registry) -> z3::ast::Bool {
         & has_baron_setup.implies(baron_present)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 struct PlayerCount {
     townsfolk: i8,
     outsider: i8,
