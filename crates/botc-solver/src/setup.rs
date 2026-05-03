@@ -54,17 +54,17 @@ static BASE_SETUP: &[PlayerCount] = &[
 ];
 
 fn is_baron(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
+    use botc_core::Character::Evil;
     use botc_core::Evil::Minion;
-    use botc_core::Minion::*;
+    use botc_core::Minion::Baron;
 
     r.get(p, Evil(Minion(Baron))).clone()
 }
 
 fn is_minion(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
+    use botc_core::Character::Evil;
     use botc_core::Evil::Minion;
-    use botc_core::Minion::*;
+    use botc_core::Minion::{Baron, Poisoner, ScarletWoman, Spy};
 
     r.get(p, Evil(Minion(Baron)))
         | r.get(p, Evil(Minion(Poisoner)))
@@ -73,17 +73,20 @@ fn is_minion(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
 }
 
 fn is_demon(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
-    use botc_core::Demon::*;
+    use botc_core::Character::Evil;
+    use botc_core::Demon::Imp;
     use botc_core::Evil::Demon;
 
     r.get(p, Evil(Demon(Imp))).clone()
 }
 
 fn is_townsfolk(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
+    use botc_core::Character::Good;
     use botc_core::Good::Townsfolk;
-    use botc_core::Townsfolk::*;
+    use botc_core::Townsfolk::{
+        Chef, Empath, FortuneTeller, Investigator, Librarian, Mayor, Monk, Ravenkeeper, Slayer,
+        Soldier, Undertaker, Virgin, Washerwoman,
+    };
 
     r.get(p, Good(Townsfolk(Washerwoman)))
         | r.get(p, Good(Townsfolk(Librarian)))
@@ -101,9 +104,9 @@ fn is_townsfolk(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
 }
 
 fn is_outsider(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
+    use botc_core::Character::Good;
     use botc_core::Good::Outsider;
-    use botc_core::Outsider::*;
+    use botc_core::Outsider::{Butler, Drunk, Recluse, Saint};
 
     r.get(p, Good(Outsider(Butler)))
         | r.get(p, Good(Outsider(Drunk)))
@@ -123,7 +126,7 @@ fn assert_player_count_by_predicate(
         .map(|p| predicate(r, p).ite(&one, &zero))
         .collect_vec();
 
-    let want = z3::ast::Int::from_i64(count as i64);
+    let want = z3::ast::Int::from_i64(i64::from(count));
     z3::ast::Int::add(player_satisfies_predicate.iter().as_slice()).eq(want)
 }
 
