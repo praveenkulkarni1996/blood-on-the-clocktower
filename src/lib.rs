@@ -201,6 +201,11 @@ pub enum Claim {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ReportLog {
     OnTime(Time, Player, Claim),
-    Executes(Time, Player),
-    DiesAtNight(Time, Player),
+
+    // These are events that are verified entirely.
+    // All players are unambiguously aware of these events.
+    DayExecutes(Time, Player),
+    NightKilled(Time, Player),
+    VirginNominatorDies(Time, Player),
+    SlayerTargetDies(Time, Player),
 }
