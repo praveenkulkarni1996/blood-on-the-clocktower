@@ -61,36 +61,29 @@ fn setup_game() -> Vec<botc::ReportLog> {
             Claim::UndertakerSees(adam, Character::Good(Good::Townsfolk(Townsfolk::Chef))),
         ),
         // DAY-2
-        // Adam (the Chef) is nominated and executed.
-        DayExecutes(Day(2), adam),
+        // Brooke (Drunk-Undertaker) is nominated and executed.
+        DayExecutes(Day(2), brooke),
         // NIGHT-3
         // 1. Sullivan (Poisoner) poisons Carly (the Fortune Teller). (Disables Red Herring)
-        // OnTime(Day(2), sullivan, Claim::PoisonerPoisons(carly)),
-        // 2. Isaac (Monk) protects Adam. (Wait, Adam is dead - protecting a corpse/sinking kill?)
-        // In the game, Isaac protected someone, but Blair killed Brooke.
-        NightKilled(Night(3), brooke),
-        //
+        DocumentOnly(Night(3), sullivan, Claim::PoisonerPoisons(carly)),
+        // John : Librarian is killed in the night.
+        NightKilled(Night(3), john),
         // 3. Carly (Fortune Teller) selects herself and Dom. (No - Poisoned)
         OnTime(Night(3), carly, Claim::FortuneTellerNo(carly, dom)),
-        // 4. Blair (Imp) kills Brooke (the Drunk).
-        // OnTime(Night(3), blair, Claim::ImpKills(brooke)),
         // DAY-3
-        // Isaac (the Monk) is nominated and executed.
-        DayExecutes(Day(3), isaac),
+        // Laurie (the RECLUSE) is nominated and executed.
+        DayExecutes(Day(3), laurie),
+        //
         // NIGHT-4
-        // The Final Five (Blair, Sullivan, Ollie, Carly, Dom) remain.
-        // There were no deaths this night.
-
-        // DAY-4
-        // Carly (the Fortune Teller) is executed.
-        // Result: Leaving only 4 alive (Blair, Sullivan, Ollie, Dom).
-        DayExecutes(Day(4), carly),
+        // Carly is poisoned and killed.
+        DocumentOnly(Night(4), sullivan, Claim::PoisonerPoisons(carly)),
+        NightKilled(Night(3), carly),
         // NIGHT-5
         // 1. Sullivan (Poisoner) poisons Dom (the Mayor).
         // Consequence: Disables the "bounce" safety net.
-        // OnTime(Night(5), sullivan, Claim::PoisonerPoisons(dom)),
         // 2. Blair (Imp) kills Dom (the Mayor).
         // Result: Dom dies, leaving only the 3 Evil players.
+        DocumentOnly(Night(5), sullivan, Claim::PoisonerPoisons(dom)),
         NightKilled(Night(5), dom),
         // Claims
         OnTime(

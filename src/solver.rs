@@ -639,6 +639,22 @@ pub fn poisoning_does_not_move_during_the_day(solver: &Solver, registry: &Regist
     }
 }
 
+// Assert that the character is still alive.
+fn assert_character_is_alive(r: &Registry, c: Character, time: Time) -> z3::ast::Bool {
+    let is_alive_character = |player: Player| -> z3::ast::Bool {
+        let is_alive = &r.is_alive[&player][&time];
+        let is_character = &r.is_character[&(player, c)];
+        is_alive & is_character
+    };
+
+    let is_player_alive_character: Vec<z3::ast::Bool> = (0..r.num_players)
+        .map(|seat| Seat(seat))
+        .map(is_alive_character)
+        .collect_vec();
+
+    z3::ast::Bool::or(is_player_alive_character.iter().collect_vec().as_slice())
+}
+
 pub fn mark_characters_not_in_play(
     solver: &Solver,
     registry: &Registry,
