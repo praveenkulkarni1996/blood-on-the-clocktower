@@ -292,7 +292,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         OnTime(t, alpha, ChefGets(num)) => {
             // Let us assume that the recluse and the spy are not poisoned.
             // In general, assuming that the Spy is
-            // logic from the Good team's perspective, since every world in which the recluse is poisoned is equivalent to a world where the poisoner self-poisons.
+            // logic from the Good team's perspective, since every world in which the
+            // recluse is poisoned is equivalent to a world where the poisoner self-poisons.
 
             let zero = z3::ast::Int::from_i64(0);
             let one = z3::ast::Int::from_i64(1);
@@ -322,7 +323,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
 
         // Empath |alpha| gets a ZERO on their two alive neighbors: |bravo| and |charlie|.
         OnTime(t, alpha, EmpathLearnsZero(bravo, charlie)) => {
-            // TODO: Add checks to ensure that bravo and charlie are actually alive neighbors.
+            // TODO: Add checks to ensure that bravo and charlie are actually alive
+            // neighbors.
             let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
             let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
             let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
@@ -336,7 +338,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
 
         // Empath |alpha| gets a ONE on their two alive neighbors: |bravo| and |charlie|.
         OnTime(t, alpha, EmpathLearnsOne(bravo, charlie)) => {
-            // TODO: Add checks to ensure that bravo and charlie are actually alive neighbors.
+            // TODO: Add checks to ensure that bravo and charlie are actually alive
+            // neighbors.
             let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
             let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
             let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
@@ -351,7 +354,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
 
         // Empath |alpha| gets a TWO on their two alive neighbors: |bravo| and |charlie|.
         OnTime(t, alpha, EmpathLearnsTwo(bravo, charlie)) => {
-            // TODO: Add checks to ensure that bravo and charlie are actually alive neighbors.
+            // TODO: Add checks to ensure that bravo and charlie are actually alive
+            // neighbors.
             let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
             let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
             let alpha_is_poisoned = &r.is_poisoned[&alpha][&t];
@@ -416,8 +420,9 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
 
         // Undertaker |alpha| sees the previously executed player |bravo| as the |character|.
         OnTime(t, alpha, UndertakerSees(bravo, character)) => {
-            // TODO: Add checks that |bravo| is the previously executed player from |history|.
-            // If we do not do that, then this essentially becomes a RavenKeeper.
+            // TODO: Add checks that |bravo| is the previously executed player from
+            // |history|. If we do not do that, then this essentially becomes a
+            // RavenKeeper.
 
             let alpha_is_undertaker = r.get(*alpha, Good(Townsfolk(Undertaker)));
             let alpha_is_lying = &is_lying(&r, *alpha);
@@ -441,7 +446,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             // TODO: Checks that |alpha| has JUST died.
             let previous_day = match t {
                 Time::Night(night) => Time::Day(night - 1),
-                Time::Day(_) => panic!("ravenskeeper cannot see in the day"), // TODO: make this not panic by making this unrepresentable.
+                Time::Day(_) => panic!("ravenskeeper cannot see in the day"), /* TODO: make this not panic by making this unrepresentable. */
             };
 
             let alpha_is_alive_in_the_day = &r.is_alive[alpha][&previous_day];
@@ -467,7 +472,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
                 }
             }
         }
-        _other => todo!("pending implementation: {:?}", _other), // TODO: implement the rest of the claim types.
+        _other => todo!("pending implementation: {:?}", _other), /* TODO: implement the rest of
+                                                                  * the claim types. */
     }
 }
 
@@ -487,7 +493,8 @@ pub fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
 }
 
 /// Every character has at most one player.
-/// NOTE: When the Scarlet Woman / Imp-Starpass mechanic is implemented, this will need to be updated.
+/// NOTE: When the Scarlet Woman / Imp-Starpass mechanic is implemented, this
+/// will need to be updated.
 pub fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
     for c in Character::iter() {
         let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), c));

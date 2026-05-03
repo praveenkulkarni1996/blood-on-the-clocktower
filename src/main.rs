@@ -37,7 +37,8 @@ fn setup_game() -> Vec<botc::ReportLog> {
         // She receives a "Yes" because she is her own Red Herring.
         ReportLog::OnTime(Night(1), carly, Claim::FortuneTellerYes(adam, laurie)),
         // 5. Brooke (Drunk) believes she is the Undertaker.
-        // 6. Blair (Imp) learns her Minions (Ollie, Sullivan) and Demon Bluffs (Investigator, Empath, Saint).
+        // 6. Blair (Imp) learns her Minions (Ollie, Sullivan) and Demon Bluffs (Investigator,
+        //    Empath, Saint).
 
         // DAY-1
         // Laurie (the Recluse) is executed.
@@ -92,7 +93,8 @@ fn setup_game() -> Vec<botc::ReportLog> {
         ReportLog::OnTime(
             Night(1),
             ollie,
-            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Soldier))), // Lying. Ollie is a Baron.
+            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Soldier))), /* Lying. Ollie is
+                                                                              * a Baron. */
         ),
         ReportLog::OnTime(
             Night(1),
@@ -122,7 +124,8 @@ fn setup_game() -> Vec<botc::ReportLog> {
         ReportLog::OnTime(
             Night(1),
             sullivan,
-            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Empath))), // Lying: Actually poisoner
+            Claim::Am(Character::Good(Good::Townsfolk(Townsfolk::Empath))), /* Lying: Actually
+                                                                             * poisoner */
         ),
         ReportLog::OnTime(
             Night(1),
@@ -164,7 +167,6 @@ fn main() {
         let ast_constraint = solver::constrain(&registry, &history, &log);
         solver.assert(ast_constraint);
     }
-
 
     solver::player_has_exactly_one_character(&solver, &registry);
     solver::character_has_at_most_one_player(&solver, &registry);

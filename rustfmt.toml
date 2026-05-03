@@ -1,0 +1,8 @@
+# Use the 2021 edition rules for parsing
+edition = "2024"
+
+# Automatically wrap comments that exceed max_width
+wrap_comments = true
+
+# Sets the maximum width for comments specifically (optional)
+comment_width = 80

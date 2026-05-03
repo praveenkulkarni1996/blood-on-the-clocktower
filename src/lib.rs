@@ -173,9 +173,9 @@ impl PartialOrd for Time {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Claim {
     Am(Character),
-    WasherwomanSees(Player, Player, Townsfolk), // https://wiki.bloodontheclocktower.com/Washerwoman
+    WasherwomanSees(Player, Player, Townsfolk), /* https://wiki.bloodontheclocktower.com/Washerwoman */
     LibrarianSees(Player, Player, Outsider),    // https://wiki.bloodontheclocktower.com/Librarian
-    InvestigatorSees(Player, Player, Minion), // https://wiki.bloodontheclocktower.com/Investigator
+    InvestigatorSees(Player, Player, Minion), /* https://wiki.bloodontheclocktower.com/Investigator */
     ChefGets(i32),                            // https://wiki.bloodontheclocktower.com/Chef
     EmpathLearnsZero(Player, Player),
     EmpathLearnsOne(Player, Player),
@@ -184,8 +184,9 @@ pub enum Claim {
     FortuneTellerNo(Player, Player),  // https://wiki.bloodontheclocktower.com/Fortune_Teller
     UndertakerSees(Player, Character),
     RavenkeeperSees(Player, Character),
-    VirginIsNominatedBy(Player, LiveOrDie), // Virgin is nominated by `Player`, and might LiveOrDie
-    SlayerShoots(Player, LiveOrDie),        // Slayer shoots the `Player` who will LiveOrDie
+    VirginIsNominatedBy(Player, LiveOrDie), /* Virgin is nominated by `Player`, and might
+                                             * LiveOrDie */
+    SlayerShoots(Player, LiveOrDie), // Slayer shoots the `Player` who will LiveOrDie
 
     MonkClaims(),
     // TODO: It might be worth it to take a good look at minion events.
