@@ -29,17 +29,6 @@ pub struct Registry<'ctx> {
     is_red_herring: HashMap<Player, Bool>,
 }
 
-fn is_minion(r: &Registry, p: Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
-    use botc_core::Evil::Minion;
-    use botc_core::Minion::*;
-
-    r.get(p, Evil(Minion(Baron)))
-        | r.get(p, Evil(Minion(Poisoner)))
-        | r.get(p, Evil(Minion(ScarletWoman)))
-        | r.get(p, Evil(Minion(Spy)))
-}
-
 fn is_lying(r: &Registry, p: Player) -> z3::ast::Bool {
     use botc_core::Character::*;
     use botc_core::Demon::*;
