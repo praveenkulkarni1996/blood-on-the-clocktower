@@ -77,7 +77,9 @@ fn is_minion(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
         | r.get(p, Evil(Minion(Spy)))
 }
 
-fn is_demon(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
+// TODO: create a must_register_demon() and make this private.
+#[must_use]
+pub fn is_demon(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
     use botc_core::Character::Evil;
     use botc_core::Demon::Imp;
     use botc_core::Evil::Demon;
@@ -85,7 +87,9 @@ fn is_demon(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
     r.get(p, Evil(Demon(Imp))).clone()
 }
 
-fn is_townsfolk(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
+// TODO: create a must_register_townsfolk() and make this private.
+#[must_use]
+pub fn is_townsfolk(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
     use botc_core::Character::Good;
     use botc_core::Good::Townsfolk;
     use botc_core::Townsfolk::{

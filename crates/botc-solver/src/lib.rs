@@ -105,6 +105,39 @@ fn can_register_good(r: &Registry, p: &Player) -> z3::ast::Bool {
         | r.get(*p, Evil(Minion(Spy)))
 }
 
+fn can_register_townsfolk(r: &Registry, p: &Player) -> z3::ast::Bool {
+    use botc_core::Character::*;
+    use botc_core::Evil::*;
+    use botc_core::Good::*;
+    use botc_core::Minion::*;
+    use botc_core::Townsfolk::*;
+
+    r.get(*p, Good(Townsfolk(Washerwoman)))
+        | r.get(*p, Good(Townsfolk(Librarian)))
+        | r.get(*p, Good(Townsfolk(Investigator)))
+        | r.get(*p, Good(Townsfolk(Chef)))
+        | r.get(*p, Good(Townsfolk(Empath)))
+        | r.get(*p, Good(Townsfolk(FortuneTeller)))
+        | r.get(*p, Good(Townsfolk(Undertaker)))
+        | r.get(*p, Good(Townsfolk(Monk)))
+        | r.get(*p, Good(Townsfolk(Ravenkeeper)))
+        | r.get(*p, Good(Townsfolk(Virgin)))
+        | r.get(*p, Good(Townsfolk(Slayer)))
+        | r.get(*p, Good(Townsfolk(Soldier)))
+        | r.get(*p, Good(Townsfolk(Mayor)))
+        | r.get(*p, Evil(Minion(Spy)))
+}
+
+fn can_register_demon(r: &Registry, p: &Player) -> z3::ast::Bool {
+    use botc_core::Character::*;
+    use botc_core::Demon::*;
+    use botc_core::Evil::*;
+    use botc_core::Good::*;
+    use botc_core::Outsider::*;
+
+    r.get(*p, Good(Outsider(Recluse))) | r.get(*p, Evil(Demon(Imp)))
+}
+
 fn must_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
     must_register_evil(r, p1) & must_register_evil(r, p2)
 }
@@ -397,13 +430,39 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         // TODO: Add checks that the victim is actually dead.
         OnTime(t, alpha, SoldierNightKilled) => {
             player_claims_character(r, *alpha, Good(Townsfolk(Soldier)))
-                & player_unexpected_night_killed(r, alpha, t)
+                & !is_effective(r, *alpha, *t)
         }
         // The player |alpha| claims monk, and his protected player died in the night.
         // TODO: Add checks that the victim is actually dead.
         OnTime(t, alpha, MonkProtectedNightKilled) => {
-            player_claims_character(r, *alpha, Good(Townsfolk(Monk)))
-                & player_unexpected_night_killed(r, alpha, t)
+            player_claims_character(r, *alpha, Good(Townsfolk(Monk))) & !is_effective(r, *alpha, *t)
+        }
+
+        // The virgin |alpha| kills the first |nominator|.
+        // NOTE: The exact details about nominating are modelled at a higher level.
+        OnTime(t, alpha, VirginKillsTownsfolk(nominator)) => {
+            player_must_character(r, *alpha, Good(Townsfolk(Virgin)))
+                & is_effective(r, *alpha, *t)
+                & can_register_townsfolk(r, nominator)
+        }
+
+        // The supposed-virgin |virgin| is unable to kill the first |nominator|.
+        OnTime(t, virgin, VirginMisses(nominator)) => {
+            player_claims_character(r, *virgin, Good(Townsfolk(Virgin)))
+                & (!is_effective(r, *virgin, *t) ^ !setup::is_townsfolk(r, *nominator))
+        }
+
+        // The player |slayer| is able to kill the |target|.
+        OnTime(t, slayer, SlayerKillsDemon(target)) => {
+            player_must_character(r, *slayer, Good(Townsfolk(Slayer)))
+                & is_effective(r, *slayer, *t)
+                & can_register_demon(r, target)
+        }
+
+        // The supposed-slayer |slayer| is unable to kill their |target|.
+        OnTime(t, slayer, SlayerMisses(target)) => {
+            player_claims_character(r, *slayer, Good(Townsfolk(Slayer)))
+                & (!is_effective(r, *slayer, *t) ^ !setup::is_demon(r, *target))
         }
 
         // The town executes the |player| at time |t|.
@@ -592,17 +651,13 @@ pub fn mark_characters_not_in_play(solver: &Solver, registry: &Registry, charact
     }
 }
 
-// A supposedly-immune player has un-expectedly died in the night.
-fn player_unexpected_night_killed(r: &Registry, defender: &Player, time: &Time) -> Bool {
-    let is_defender_lying: Bool = is_lying(r, *defender);
-    let is_defender_poisoned: &Bool = &r.is_poisoned[defender][time];
-
-    is_defender_lying | is_defender_poisoned
-}
-
 /// A player claims to be a character.
 fn player_claims_character(r: &Registry, claimant: Player, character: Character) -> Bool {
     is_lying(r, claimant) ^ r.get(claimant, character)
+}
+
+fn player_must_character(r: &Registry, claimant: Player, character: Character) -> Bool {
+    r.get(claimant, character).clone()
 }
 
 /// A player (e.g. Ravenskeeper, Undertaker) sees another player's token.
@@ -632,6 +687,14 @@ fn player_sees_other_players_character(
     }
 }
 
+// Validates that a player's ablity should correctly have the right effect.
+fn is_effective(r: &Registry, p: Player, t: Time) -> Bool {
+    let player_is_lying: Bool = is_lying(r, p);
+    let player_is_poisoned: &Bool = &r.is_poisoned[&p][&t];
+
+    (!player_is_lying) & (!player_is_poisoned)
+}
+
 fn see_character_between_player_pair(
     r: &Registry,
     seer: Player,
@@ -645,9 +708,6 @@ fn see_character_between_player_pair(
     use botc_core::Good::*;
     use botc_core::Minion::*;
     use botc_core::Outsider::*;
-
-    let seer_lied: Bool = is_lying(r, seer);
-    let seer_is_poisoned: &Bool = &r.is_poisoned[&seer][&time];
 
     let a_is_correct = r.get(a, token);
     let b_is_correct = r.get(b, token);
@@ -663,7 +723,7 @@ fn see_character_between_player_pair(
         Evil(_) => a_is_correct | b_is_correct | a_is_recluse | b_is_recluse,
     };
 
-    (!seer_lied & !seer_is_poisoned).implies(valid)
+    is_effective(r, seer, time).implies(valid)
 }
 
 #[cfg(test)]
