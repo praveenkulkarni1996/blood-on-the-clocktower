@@ -179,8 +179,6 @@ fn main() {
         &solver,
         &registry,
         &vec![
-            Character::Good(Good::Outsider(Outsider::Saint)),
-            Character::Good(Good::Outsider(Outsider::Butler)),
             Character::Evil(Evil::Minion(Minion::ScarletWoman)),
             Character::Evil(Evil::Minion(Minion::Spy)),
         ],
