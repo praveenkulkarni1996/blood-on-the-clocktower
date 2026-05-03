@@ -1,7 +1,12 @@
+#![warn(clippy::pedantic)]
 use itertools::Itertools;
 
+/// # Panics
+///
+/// This panics if there are too few (< 0) or too many players (> 15).
 pub fn assert_player_count_rules(r: &super::Registry) -> z3::ast::Bool {
-    let base_setup: PlayerCount = BASE_SETUP[r.num_players as usize];
+    let num_players = usize::try_from(r.num_players).unwrap();
+    let base_setup: PlayerCount = BASE_SETUP[num_players];
     let baron_setup: PlayerCount = PlayerCount {
         townsfolk: base_setup.townsfolk - 2,
         outsider: base_setup.outsider + 2,
@@ -30,7 +35,7 @@ struct PlayerCount {
 #[rustfmt::skip]
 static BASE_SETUP: &[PlayerCount] = &[
     // 0-4 players is not a valid game.
-    PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 0 invaild
+    PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 0 invalid
     PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 1 invalid
     PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 2 invalid
     PlayerCount { townsfolk: 0, outsider: 0, minion: 0, demon: 0}, // 3 invalid
