@@ -51,11 +51,11 @@ fn is_lying(r: &Registry, p: Player) -> z3::ast::Bool {
 }
 
 fn must_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
-    registers::must_evil(r, p1) & registers::must_evil(r, p2)
+    registers::must_evil(r, *p1) & registers::must_evil(r, *p2)
 }
 
 fn can_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
-    registers::can_evil(r, p1) & registers::can_evil(r, p2)
+    registers::can_evil(r, *p1) & registers::can_evil(r, *p2)
 }
 
 impl<'ctx> Registry<'ctx> {
@@ -236,7 +236,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             alpha_is_empath.implies(
                 alpha_is_poisoned
                     | alpha_is_drunk
-                    | (registers::can_good(r, bravo) & registers::can_good(r, charlie)),
+                    | (registers::can_good(r, *bravo) & registers::can_good(r, *charlie)),
             )
         }
 
@@ -251,8 +251,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             alpha_is_empath.implies(
                 alpha_is_poisoned
                     | alpha_is_drunk
-                    | (registers::can_good(r, bravo) & registers::can_evil(r, charlie))
-                    | (registers::can_evil(r, bravo) & registers::can_good(r, charlie)),
+                    | (registers::can_good(r, *bravo) & registers::can_evil(r, *charlie))
+                    | (registers::can_evil(r, *bravo) & registers::can_good(r, *charlie)),
             )
         }
 
@@ -267,7 +267,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             alpha_is_empath.implies(
                 alpha_is_poisoned
                     | alpha_is_drunk
-                    | (registers::can_evil(r, bravo) & registers::can_evil(r, charlie)),
+                    | (registers::can_evil(r, *bravo) & registers::can_evil(r, *charlie)),
             )
         }
 
@@ -355,7 +355,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         OnTime(t, alpha, VirginKillsTownsfolk(nominator)) => {
             player_must_character(r, *alpha, Good(Townsfolk(Virgin)))
                 & is_effective(r, *alpha, *t)
-                & registers::can_townsfolk(r, nominator)
+                & registers::can_townsfolk(r, *nominator)
         }
 
         // The supposed-virgin |virgin| is unable to kill the first |nominator|.
@@ -368,7 +368,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         OnTime(t, slayer, SlayerKillsDemon(target)) => {
             player_must_character(r, *slayer, Good(Townsfolk(Slayer)))
                 & is_effective(r, *slayer, *t)
-                & registers::can_demon(r, target)
+                & registers::can_demon(r, *target)
         }
 
         // The supposed-slayer |slayer| is unable to kill their |target|.
