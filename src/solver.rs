@@ -488,6 +488,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
                     .collect_vec();
 
             z3::ast::Bool::and(player_is_not_alive.iter().collect_vec().as_slice())
+                & assert_character_is_alive(r, Evil(Demon(Imp)), *t)
         }
 
         // The player dies at night.
@@ -506,6 +507,7 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
                     .collect_vec();
 
             z3::ast::Bool::and(player_is_not_alive.iter().collect_vec().as_slice())
+                & assert_character_is_alive(r, Evil(Demon(Imp)), *t)
         }
 
         // Documentation only fields are not used for solving.
