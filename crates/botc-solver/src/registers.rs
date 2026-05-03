@@ -1,11 +1,13 @@
-use botc_core::Character::*;
-use botc_core::Demon::*;
-use botc_core::Evil::*;
-use botc_core::Good::*;
-use botc_core::Minion::*;
-use botc_core::Outsider::*;
-use botc_core::Townsfolk::*;
+#![warn(clippy::pedantic)]
+use botc_core::Character::{Evil, Good};
+use botc_core::Demon::Imp;
+use botc_core::Evil::{Minion, Demon};
+use botc_core::Good::{Outsider, Townsfolk};
+use botc_core::Minion::{Baron, Poisoner, ScarletWoman, Spy};
+use botc_core::Outsider::{Recluse, Saint, Butler, Drunk};
+use botc_core::Townsfolk::{Washerwoman, Librarian, Investigator, Chef, Empath, FortuneTeller, Undertaker, Monk, Ravenkeeper, Virgin, Slayer, Soldier, Mayor};
 
+#[must_use] 
 pub fn must_evil(r: &super::Registry, p: &botc_core::Player) -> z3::ast::Bool {
     r.get(*p, Evil(Minion(Baron)))
         | r.get(*p, Evil(Minion(Poisoner)))
@@ -13,10 +15,12 @@ pub fn must_evil(r: &super::Registry, p: &botc_core::Player) -> z3::ast::Bool {
         | r.get(*p, Evil(Demon(Imp)))
 }
 
+#[must_use] 
 pub fn can_evil(r: &super::Registry, p: &botc_core::Player) -> z3::ast::Bool {
     must_evil(r, p) | r.get(*p, Good(Outsider(Recluse))) | r.get(*p, Evil(Minion(Spy)))
 }
 
+#[must_use] 
 pub fn can_good(r: &super::Registry, p: &botc_core::Player) -> z3::ast::Bool {
     r.get(*p, Good(Townsfolk(Washerwoman)))
         | r.get(*p, Good(Townsfolk(Librarian)))
@@ -38,6 +42,7 @@ pub fn can_good(r: &super::Registry, p: &botc_core::Player) -> z3::ast::Bool {
         | r.get(*p, Evil(Minion(Spy)))
 }
 
+#[must_use] 
 pub fn must_townsfolk(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
     r.get(p, Good(Townsfolk(Washerwoman)))
         | r.get(p, Good(Townsfolk(Librarian)))
@@ -54,18 +59,22 @@ pub fn must_townsfolk(r: &super::Registry, p: botc_core::Player) -> z3::ast::Boo
         | r.get(p, Good(Townsfolk(Mayor)))
 }
 
+#[must_use] 
 pub fn can_townsfolk(r: &super::Registry, p: &botc_core::Player) -> z3::ast::Bool {
     must_townsfolk(r, *p) | r.get(*p, Evil(Minion(Spy)))
 }
 
+#[must_use] 
 pub fn must_demon(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
     r.get(p, Evil(Demon(Imp))).clone()
 }
 
+#[must_use] 
 pub fn can_demon(r: &super::Registry, p: &botc_core::Player) -> z3::ast::Bool {
     must_demon(r, *p) | r.get(*p, Good(Outsider(Recluse)))
 }
 
+#[must_use] 
 pub fn as_token(
     r: &super::Registry,
     p: botc_core::Player,
