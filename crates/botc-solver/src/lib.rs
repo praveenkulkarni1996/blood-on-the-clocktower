@@ -674,16 +674,14 @@ fn player_sees_other_players_character(
     use botc_core::Minion::*;
     use botc_core::Outsider::*;
 
-    let seer_lied: Bool = is_lying(r, *seer);
-    let seer_is_poisoned: &Bool = &r.is_poisoned[seer][t];
     let target_is_correct: &Bool = r.get(*target, token);
 
     let target_is_spy = r.get(*target, Evil(Minion(Spy)));
     let target_is_recluse = r.get(*target, Good(Outsider(Recluse)));
 
     match token {
-        Good(_) => (!seer_is_poisoned & !seer_lied).implies(target_is_correct | target_is_spy),
-        Evil(_) => (!seer_is_poisoned & !seer_lied).implies(target_is_correct | target_is_recluse),
+        Good(_) => is_effective(r, *seer, *t).implies(target_is_correct | target_is_spy),
+        Evil(_) => is_effective(r, *seer, *t).implies(target_is_correct | target_is_recluse),
     }
 }
 
