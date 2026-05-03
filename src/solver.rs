@@ -666,16 +666,222 @@ pub fn mark_characters_not_in_play(
     }
 }
 
-pub fn fix_minion_count(solver: &Solver, registry: &Registry, count: i64) {
-    let zero = z3::ast::Int::from_i64(0);
-    let one = z3::ast::Int::from_i64(1);
+pub mod setup {
+    use itertools::Itertools;
 
-    let minions: Vec<z3::ast::Int> = (0..registry.num_players)
-        .map(|seat| is_minion(registry, Seat(seat)).ite(&one, &zero))
-        .collect();
+    #[derive(Debug, Clone)]
+    struct PlayerCount {
+        townsfolk: i8,
+        outsider: i8,
+        minion: i8,
+        demon: i8,
+    }
 
-    let want_minions = z3::ast::Int::from_i64(count);
-    solver.assert(z3::ast::Int::add(&minions.iter().collect::<Vec<_>>()).eq(want_minions));
+    static BASE_SETUP: &'static [PlayerCount] = &[
+        // 0-4 players is not a valid game.
+        PlayerCount {
+            townsfolk: 0,
+            outsider: 0,
+            minion: 0,
+            demon: 0,
+        },
+        PlayerCount {
+            townsfolk: 0,
+            outsider: 0,
+            minion: 0,
+            demon: 0,
+        },
+        PlayerCount {
+            townsfolk: 0,
+            outsider: 0,
+            minion: 0,
+            demon: 0,
+        },
+        PlayerCount {
+            townsfolk: 0,
+            outsider: 0,
+            minion: 0,
+            demon: 0,
+        },
+        PlayerCount {
+            townsfolk: 0,
+            outsider: 0,
+            minion: 0,
+            demon: 0,
+        },
+        // 5-player and 6-player are Teensyville.
+        // Here: minion and demon are not told each other
+        PlayerCount {
+            townsfolk: 3,
+            outsider: 0,
+            minion: 1,
+            demon: 1,
+        }, // 5
+        PlayerCount {
+            townsfolk: 3,
+            outsider: 1,
+            minion: 1,
+            demon: 1,
+        }, // 6
+        // 7-player games are played in "Ravenswood Bluff".
+        // 1-minion
+        PlayerCount {
+            townsfolk: 5,
+            outsider: 0,
+            minion: 1,
+            demon: 1,
+        }, // 7
+        PlayerCount {
+            townsfolk: 5,
+            outsider: 1,
+            minion: 1,
+            demon: 1,
+        }, // 8
+        PlayerCount {
+            townsfolk: 5,
+            outsider: 2,
+            minion: 1,
+            demon: 1,
+        }, // 9
+        // 2 minion evil team.
+        PlayerCount {
+            townsfolk: 7,
+            outsider: 0,
+            minion: 2,
+            demon: 1,
+        }, // 10
+        PlayerCount {
+            townsfolk: 7,
+            outsider: 1,
+            minion: 2,
+            demon: 1,
+        }, // 11
+        PlayerCount {
+            townsfolk: 7,
+            outsider: 2,
+            minion: 2,
+            demon: 1,
+        }, // 12
+        // 3-minion evil team.
+        PlayerCount {
+            townsfolk: 9,
+            outsider: 0,
+            minion: 3,
+            demon: 1,
+        }, // 13
+        PlayerCount {
+            townsfolk: 9,
+            outsider: 1,
+            minion: 3,
+            demon: 1,
+        }, // 14
+        PlayerCount {
+            townsfolk: 9,
+            outsider: 2,
+            minion: 3,
+            demon: 1,
+        }, // 15
+    ];
+
+    fn is_baron(r: &super::Registry, p: crate::Player) -> z3::ast::Bool {
+        use crate::Character::*;
+        use crate::Evil::Minion;
+        use crate::Minion::*;
+
+        r.get(p, Evil(Minion(Baron))).clone()
+    }
+
+    fn is_minion(r: &super::Registry, p: crate::Player) -> z3::ast::Bool {
+        use crate::Character::*;
+        use crate::Evil::Minion;
+        use crate::Minion::*;
+
+        r.get(p, Evil(Minion(Baron)))
+            | r.get(p, Evil(Minion(Poisoner)))
+            | r.get(p, Evil(Minion(ScarletWoman)))
+            | r.get(p, Evil(Minion(Spy)))
+    }
+
+    fn is_demon(r: &super::Registry, p: crate::Player) -> z3::ast::Bool {
+        use crate::Character::*;
+        use crate::Demon::*;
+        use crate::Evil::Demon;
+
+        r.get(p, Evil(Demon(Imp))).clone()
+    }
+
+    fn is_townsfolk(r: &super::Registry, p: crate::Player) -> z3::ast::Bool {
+        use crate::Character::*;
+        use crate::Good::Townsfolk;
+        use crate::Townsfolk::*;
+
+        r.get(p, Good(Townsfolk(Washerwoman)))
+            | r.get(p, Good(Townsfolk(Librarian)))
+            | r.get(p, Good(Townsfolk(Investigator)))
+            | r.get(p, Good(Townsfolk(Chef)))
+            | r.get(p, Good(Townsfolk(Empath)))
+            | r.get(p, Good(Townsfolk(FortuneTeller)))
+            | r.get(p, Good(Townsfolk(Undertaker)))
+            | r.get(p, Good(Townsfolk(Monk)))
+            | r.get(p, Good(Townsfolk(Ravenkeeper)))
+            | r.get(p, Good(Townsfolk(Virgin)))
+            | r.get(p, Good(Townsfolk(Slayer)))
+            | r.get(p, Good(Townsfolk(Soldier)))
+            | r.get(p, Good(Townsfolk(Mayor)))
+    }
+
+    fn is_outsider(r: &super::Registry, p: crate::Player) -> z3::ast::Bool {
+        use crate::Character::*;
+        use crate::Good::Outsider;
+        use crate::Outsider::*;
+
+        r.get(p, Good(Outsider(Butler)))
+            | r.get(p, Good(Outsider(Drunk)))
+            | r.get(p, Good(Outsider(Recluse)))
+            | r.get(p, Good(Outsider(Saint)))
+    }
+
+    fn assert_player_count_by_predicate(
+        r: &super::Registry,
+        predicate: fn(&super::Registry, crate::Player) -> z3::ast::Bool,
+        count: i8,
+    ) -> z3::ast::Bool {
+        let zero = z3::ast::Int::from_i64(0);
+        let one = z3::ast::Int::from_i64(1);
+        let player_satisfies_predicate: Vec<z3::ast::Int> = (0..r.num_players)
+            .map(crate::Player::Seat)
+            .map(|p| predicate(r, p).ite(&one, &zero))
+            .collect_vec();
+
+        let want = z3::ast::Int::from_i64(count as i64);
+        z3::ast::Int::add(player_satisfies_predicate.iter().as_slice()).eq(want)
+    }
+
+    fn assert_setup(r: &super::Registry, setup: PlayerCount) -> z3::ast::Bool {
+        assert_player_count_by_predicate(r, is_townsfolk, setup.townsfolk)
+            & assert_player_count_by_predicate(r, is_demon, setup.demon)
+            & assert_player_count_by_predicate(r, is_minion, setup.minion)
+            & assert_player_count_by_predicate(r, is_outsider, setup.outsider)
+    }
+
+    pub fn assert_player_count_rules(r: &super::Registry) -> z3::ast::Bool {
+        let base_setup: PlayerCount = BASE_SETUP[r.num_players as usize].clone();
+        let baron_setup: PlayerCount = PlayerCount {
+            townsfolk: base_setup.townsfolk - 2,
+            outsider: base_setup.outsider + 2,
+            minion: base_setup.minion,
+            demon: base_setup.demon,
+        };
+
+        let has_base_setup = assert_setup(r, base_setup);
+        let has_baron_setup = assert_setup(r, baron_setup);
+        let baron_present = assert_player_count_by_predicate(r, is_baron, 1);
+        let baron_absent = assert_player_count_by_predicate(r, is_baron, 0);
+
+        (has_base_setup.clone() ^ has_baron_setup.clone())
+            & has_base_setup.implies(baron_absent)
+            & has_baron_setup.implies(baron_present)
+    }
 }
 
 #[cfg(test)]

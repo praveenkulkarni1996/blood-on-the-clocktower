@@ -168,16 +168,13 @@ fn main() {
     solver::character_has_at_most_one_player(&solver, &registry);
     solver::atmost_one_player_can_be_red_herringed(&solver, &registry);
     solver::atmost_one_player_can_be_poisoned(&solver, &registry);
-    solver::fix_minion_count(&solver, &registry, 2);
     solver::poisoner_can_poison_one_person_only_if_alive(&solver, &registry);
     solver::poisoning_does_not_move_during_the_day(&solver, &registry);
+    solver.assert(solver::setup::assert_player_count_rules(&registry));
     solver::mark_characters_not_in_play(
         &solver,
         &registry,
-        &vec![
-            Character::Evil(Evil::Minion(Minion::ScarletWoman)),
-            Character::Evil(Evil::Minion(Minion::Spy)),
-        ],
+        &vec![Character::Evil(Evil::Minion(Minion::ScarletWoman))],
     );
 
     dbg!(solver.check());
