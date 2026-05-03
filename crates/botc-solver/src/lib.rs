@@ -388,18 +388,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
 
         // Ravenkeeper |alpha| sees the |bravo| as the |character|.
         OnTime(t, alpha, RavenkeeperSees(bravo, character)) => {
-            // TODO: Checks that |alpha| has JUST died.
-            let previous_day = match t {
-                Time::Night(night) => Time::Day(night - 1),
-                Time::Day(_) => panic!("ravenskeeper cannot see in the day"), /* TODO: make this not panic by making this unrepresentable. */
-            };
-
-            let alpha_is_alive_in_the_day = &r.is_alive[alpha][&previous_day];
-            let alpha_is_dead_in_the_night = &!r.is_alive[alpha][t].clone();
-            let alpha_just_died = alpha_is_alive_in_the_day & alpha_is_dead_in_the_night;
-
-            alpha_just_died
-                & player_claims_character(r, *alpha, Good(Townsfolk(Ravenkeeper)))
+            // TODO: Add checks that |alpha| has JUST died.
+            player_claims_character(r, *alpha, Good(Townsfolk(Ravenkeeper)))
                 & player_sees_other_players_character(r, alpha, bravo, *character, t)
         }
 
