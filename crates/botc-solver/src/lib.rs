@@ -10,7 +10,7 @@ use botc_core::{Character, Claim, Time, TimeIterator};
 use botc_core::{Player, ReportLog};
 
 pub struct Registry<'ctx> {
-    context: &'ctx Context,
+    _context: &'ctx Context,
 
     num_players: i32,
 
@@ -170,7 +170,7 @@ impl<'ctx> Registry<'ctx> {
         };
 
         Registry {
-            context,
+            _context: context,
             num_players: num_players.try_into().unwrap(),
             until: until,
 
