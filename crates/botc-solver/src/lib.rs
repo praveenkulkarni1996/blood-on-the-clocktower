@@ -112,7 +112,7 @@ fn can_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
 
 impl<'ctx> Registry<'ctx> {
     /// Create a new registry of variables for the given context.
-    pub fn new(context: &Context, num_players: usize, until: Time) -> Registry {
+    pub fn new(context: &Context, num_players: usize, until: Time) -> Registry<'_> {
         let mut is = HashMap::new();
         for seat in 0..num_players {
             let player = Player::Seat(seat.try_into().unwrap());
