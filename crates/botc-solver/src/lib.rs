@@ -141,7 +141,6 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
     use botc_core::Demon::*;
     use botc_core::Evil::*;
     use botc_core::Good::*;
-    use botc_core::Outsider::*;
     use botc_core::ReportLog::OnTime;
     use botc_core::Townsfolk::*;
 
@@ -229,96 +228,58 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         OnTime(t, alpha, EmpathLearnsZero(bravo, charlie)) => {
             // TODO: Add checks to ensure that bravo and charlie are actually alive
             // neighbors.
-            let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-
-            alpha_is_empath.implies(
-                alpha_is_poisoned
-                    | alpha_is_drunk
-                    | (registers::can_good(r, *bravo) & registers::can_good(r, *charlie)),
-            )
+            player_claims_character(r, *alpha, Good(Townsfolk(Empath)))
+                & is_effective(r, *alpha, *t)
+                    .implies(registers::can_good(r, *bravo) & registers::can_good(r, *charlie))
         }
 
         // Empath |alpha| gets a ONE on their two alive neighbors: |bravo| and |charlie|.
         OnTime(t, alpha, EmpathLearnsOne(bravo, charlie)) => {
             // TODO: Add checks to ensure that bravo and charlie are actually alive
             // neighbors.
-            let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-
-            alpha_is_empath.implies(
-                alpha_is_poisoned
-                    | alpha_is_drunk
-                    | (registers::can_good(r, *bravo) & registers::can_evil(r, *charlie))
-                    | (registers::can_evil(r, *bravo) & registers::can_good(r, *charlie)),
-            )
+            player_claims_character(r, *alpha, Good(Townsfolk(Empath)))
+                & is_effective(r, *alpha, *t).implies(
+                    (registers::can_good(r, *bravo) & registers::can_evil(r, *charlie))
+                        | (registers::can_evil(r, *bravo) & registers::can_good(r, *charlie)),
+                )
         }
 
         // Empath |alpha| gets a TWO on their two alive neighbors: |bravo| and |charlie|.
         OnTime(t, alpha, EmpathLearnsTwo(bravo, charlie)) => {
             // TODO: Add checks to ensure that bravo and charlie are actually alive
             // neighbors.
-            let alpha_is_empath: &Bool = r.get(*alpha, Good(Townsfolk(Empath)));
-            let alpha_is_drunk = r.get(*alpha, Good(Outsider(Drunk)));
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-
-            alpha_is_empath.implies(
-                alpha_is_poisoned
-                    | alpha_is_drunk
-                    | (registers::can_evil(r, *bravo) & registers::can_evil(r, *charlie)),
-            )
+            player_claims_character(r, *alpha, Good(Townsfolk(Empath)))
+                & is_effective(r, *alpha, *t)
+                    .implies(registers::can_evil(r, *bravo) & registers::can_evil(r, *charlie))
         }
 
         // FortuneTeller |alpha| gets a YES on |bravo| and |charlie|.
         OnTime(t, alpha, FortuneTellerYes(bravo, charlie)) => {
-            let alpha_is_fortune_teller: &Bool = r.get(*alpha, Good(Townsfolk(FortuneTeller)));
-            let alpha_is_lying = &is_lying(r, *alpha);
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-
-            let bravo_is_demon = r.get(*bravo, Evil(Demon(Imp)));
-            let charlie_is_demon = r.get(*charlie, Evil(Demon(Imp)));
-
             let bravo_is_red_herring = &r.is_red_herring[bravo];
             let charlie_is_red_herring = &r.is_red_herring[charlie];
 
-            let bravo_is_sober_recluse =
-                r.get(*bravo, Good(Outsider(Recluse))) & r.is_poisoned[bravo][t].not();
-            let charlie_is_sober_recluse =
-                r.get(*charlie, Good(Outsider(Recluse))) & r.is_poisoned[charlie][t].not();
-
-            (alpha_is_lying | alpha_is_fortune_teller)
-                & alpha_is_fortune_teller.implies(
-                    alpha_is_poisoned
-                        | bravo_is_demon
-                        | charlie_is_demon
+            player_claims_character(r, *alpha, Good(Townsfolk(FortuneTeller)))
+                & is_effective(r, *alpha, *t).implies(
+                    Bool::from_bool(false)
                         | bravo_is_red_herring
                         | charlie_is_red_herring
-                        | bravo_is_sober_recluse
-                        | charlie_is_sober_recluse,
+                        | registers::can_demon(r, *bravo)
+                        | registers::can_demon(r, *charlie),
                 )
         }
 
         // FortuneTeller |alpha| gets a NO on |bravo| and |charlie|.
         OnTime(t, alpha, FortuneTellerNo(bravo, charlie)) => {
-            let alpha_is_fortune_teller: &Bool = r.get(*alpha, Good(Townsfolk(FortuneTeller)));
-            let alpha_is_lying = &is_lying(r, *alpha);
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-
-            let bravo_is_demon = r.get(*bravo, Evil(Demon(Imp)));
-            let charlie_is_demon = r.get(*charlie, Evil(Demon(Imp)));
-
             let bravo_is_red_herring = &r.is_red_herring[bravo];
             let charlie_is_red_herring = &r.is_red_herring[charlie];
 
-            (alpha_is_lying | alpha_is_fortune_teller)
-                & alpha_is_fortune_teller.implies(
-                    alpha_is_poisoned
-                        | !bravo_is_demon
-                        | !charlie_is_demon
-                        | !bravo_is_red_herring
-                        | !charlie_is_red_herring,
+            player_claims_character(r, *alpha, Good(Townsfolk(FortuneTeller)))
+                & is_effective(r, *alpha, *t).implies(
+                    Bool::from_bool(true)
+                        & !bravo_is_red_herring
+                        & !charlie_is_red_herring
+                        & !registers::can_demon(r, *bravo)
+                        & !registers::can_demon(r, *charlie),
                 )
         }
 
