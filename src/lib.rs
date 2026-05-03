@@ -215,4 +215,8 @@ pub enum ReportLog {
     NightKilled(Time, Player),
     VirginNominatorDies(Time, Player),
     SlayerTargetDies(Time, Player),
+
+    // These are claims that I want to write down,
+    // But I do not want to affect the solve.
+    DocumentOnly(Time, Player, Claim),
 }

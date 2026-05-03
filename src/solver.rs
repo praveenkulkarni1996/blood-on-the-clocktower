@@ -508,6 +508,9 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             z3::ast::Bool::and(player_is_not_alive.iter().collect_vec().as_slice())
         }
 
+        // Documentation only fields are not used for solving.
+        ReportLog::DocumentOnly(_, _, _) => z3::ast::Bool::from_bool(true),
+
         _other => todo!("pending implementation: {:?}", _other), /* TODO: implement the rest of
                                                                   * the claim types. */
     }

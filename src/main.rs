@@ -26,10 +26,12 @@ fn setup_game() -> Vec<botc::ReportLog> {
 
     vec![
         // NIGHT-1
+        //
         // Sullivan (Poisoner) selects a player to neutralize.
-        // OnTime(Night(1), sullivan, Claim::PoisonerPoisons(isaac)),
+        DocumentOnly(Night(1), sullivan, Claim::PoisonerPoisons(isaac)),
+        //
         // Adam (Chef) learns how many pairs of evil players are sitting next to each other.
-        // Could learn both 1 or 2.
+        // Could learn both 1 (BARON-IMP) or 2 (POISONER-RECLUSE).
         OnTime(Night(1), adam, ChefGets(1)),
         //
         // 3. John (Librarian) learns that either Adam or Laurie is the Recluse.
@@ -45,12 +47,11 @@ fn setup_game() -> Vec<botc::ReportLog> {
         // Adam (the Chef) is executed.
         DayExecutes(Time::Day(1), adam),
         // NIGHT-2
-        // 1. Sullivan (Poisoner) poisons Isaac (the Monk).
-        // OnTime(Night(2), sullivan, Claim::PoisonerPoisons(isaac)),
+        // 1. Sullivan (Poisoner) poisons Brooke (the Undertaker).
+        DocumentOnly(Night(2), sullivan, Claim::PoisonerPoisons(brooke)),
         // 2. Isaac (Monk) protects Carly (the Fortune Teller). (Invalidated by poison)
         // OnTime(Night(2), isaac, Claim::MonkProtects(carly)),
         NightKilled(Night(2), isaac),
-        //
         // Carly (Fortune Teller) selects herself (red-herring) and Sullivan.
         OnTime(Night(2), carly, Claim::FortuneTellerYes(carly, sullivan)),
         // 5. Brooke (Undertaker - Drunk) sees Adam as the chef.
@@ -68,6 +69,7 @@ fn setup_game() -> Vec<botc::ReportLog> {
         // 2. Isaac (Monk) protects Adam. (Wait, Adam is dead - protecting a corpse/sinking kill?)
         // In the game, Isaac protected someone, but Blair killed Brooke.
         NightKilled(Night(3), brooke),
+        //
         // 3. Carly (Fortune Teller) selects herself and Dom. (No - Poisoned)
         OnTime(Night(3), carly, Claim::FortuneTellerNo(carly, dom)),
         // 4. Blair (Imp) kills Brooke (the Drunk).
