@@ -141,6 +141,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
     use botc_core::Demon::*;
     use botc_core::Evil::*;
     use botc_core::Good::*;
+    use botc_core::Minion::*;
+    use botc_core::Outsider::*;
     use botc_core::ReportLog::OnTime;
     use botc_core::Townsfolk::*;
 
@@ -193,11 +195,6 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
 
         // Chef |alpha| gets the number |num|. This means that |num| players (other than |alpha|)
         OnTime(t, alpha, ChefGets(num)) => {
-            // Let us assume that the recluse and the spy are not poisoned.
-            // In general, assuming that the Spy is
-            // logic from the Good team's perspective, since every world in which the
-            // recluse is poisoned is equivalent to a world where the poisoner self-poisons.
-
             let zero = z3::ast::Int::from_i64(0);
             let one = z3::ast::Int::from_i64(1);
 
@@ -216,12 +213,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
             let chef_max = z3::ast::Int::add(&can_pairs.iter().collect::<Vec<_>>()).ge(&chef_num);
             let chef_correct = chef_min & chef_max;
 
-            let alpha_is_chef = r.get(*alpha, Good(Townsfolk(Chef)));
-            let alpha_is_lying = &is_lying(r, *alpha);
-            let alpha_is_poisoned = &r.is_poisoned[alpha][t];
-
-            (alpha_is_lying | alpha_is_chef)
-                & alpha_is_chef.implies(alpha_is_poisoned | chef_correct)
+            player_claims_character(r, *alpha, Good(Townsfolk(Chef)))
+                & is_effective(r, *alpha, *t).implies(chef_correct)
         }
 
         // Empath |alpha| gets a ZERO on their two alive neighbors: |bravo| and |charlie|.
@@ -338,6 +331,18 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
                 & (!is_effective(r, *slayer, *t) ^ !registers::must_demon(r, *target))
         }
 
+        // The supposed-saint |saint| does not end the game when executed.
+        OnTime(t, saint, SaintExecutedWithoutDefeat) => {
+            player_claims_character(r, *saint, Good(Outsider(Saint))) & !is_effective(r, *saint, *t)
+        }
+
+        // NOTE: This is the only explicit evil-player action - meant for debugging use only.
+        // We force POISONER role.
+        OnTime(t, poisoner, PoisonerPoisons(victim)) => {
+            player_must_character(r, *poisoner, Evil(Minion(Poisoner)))
+                & r.is_poisoned[victim][t].clone()
+        }
+
         // The town executes the |player| at time |t|.
         ReportLog::DayExecutes(t, player) => {
             let day = match t {
@@ -375,9 +380,6 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
 
         // Documentation only fields are not used for solving.
         ReportLog::DocumentOnly(_, _, _) => z3::ast::Bool::from_bool(true),
-
-        _other => todo!("pending implementation: {:?}", _other), /* TODO: implement the rest of
-                                                                  * the claim types. */
     }
 }
 

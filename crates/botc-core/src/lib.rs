@@ -89,12 +89,6 @@ impl Character {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum LiveOrDie {
-    Lives,
-    Dies,
-}
-
 /// Somewhat annoyingly, the Blood on the Clocktower has decided that it will
 /// follow a 1-indexed night naming convention, i.e. we have:
 /// Night-1, Day-1, Night-2, etc.
@@ -200,12 +194,13 @@ pub enum Claim {
     SlayerMisses(Player),
     MonkProtectedNightKilled,
     SoldierNightKilled,
+    SaintExecutedWithoutDefeat,
     // TODO: It might be worth it to take a good look at minion events.
     // In particular, I think most of these might not be very useful.
     // These are primarily there for debugging purposes.
     PoisonerPoisons(Player),
     // ScarletWomanDemonizes,
-    ImpKills(Player),
+    // ImpKills(Player),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
