@@ -204,23 +204,19 @@ pub enum Claim {
     // In particular, I think most of these might not be very useful.
     // These are primarily there for debugging purposes.
     PoisonerPoisons(Player),
-    Baron,
-    ScarletWomanDemonizes,
+    // ScarletWomanDemonizes,
     ImpKills(Player),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ReportLog {
     OnTime(Time, Player, Claim),
+    // These are claims that I want to write down,
+    // But I do not want to affect the solve.
+    DocumentOnly(Time, Player, Claim),
 
     // These are events that are verified entirely.
     // All players are unambiguously aware of these events.
     DayExecutes(Time, Player),
     NightKilled(Time, Player),
-    VirginNominatorDies(Time, Player),
-    SlayerTargetDies(Time, Player),
-
-    // These are claims that I want to write down,
-    // But I do not want to affect the solve.
-    DocumentOnly(Time, Player, Claim),
 }
