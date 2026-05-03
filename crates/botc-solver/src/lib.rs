@@ -394,12 +394,16 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
         }
 
         // The player |alpha| claims soldier, and is killed in the night.
-        ReportLog::OnTime(t, alpha, Claim::SoldierNightKilled) => {
-            player_unexpected_night_killed(r, alpha, t)
+        // TODO: Add checks that the victim is actually dead.
+        OnTime(t, alpha, SoldierNightKilled) => {
+            player_claims_character(r, *alpha, Good(Townsfolk(Soldier)))
+                & player_unexpected_night_killed(r, alpha, t)
         }
         // The player |alpha| claims monk, and his protected player died in the night.
-        ReportLog::OnTime(t, alpha, Claim::MonkProtectedNightKilled) => {
-            player_unexpected_night_killed(r, alpha, t)
+        // TODO: Add checks that the victim is actually dead.
+        OnTime(t, alpha, MonkProtectedNightKilled) => {
+            player_claims_character(r, *alpha, Good(Townsfolk(Monk)))
+                & player_unexpected_night_killed(r, alpha, t)
         }
 
         // The town executes the |player| at time |t|.
