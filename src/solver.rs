@@ -563,6 +563,41 @@ pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registr
     }
 }
 
+/// A poisoned player during DAY(x) must be NIGHT(x) as well.
+///
+/// In Trouble Brewing, it is (likely) possible to model deaths has taking place
+/// at "dusk", the interplay between NIGHT and DAY. That is because:
+///   (1) Day deaths (i.e. executions) trigger the end of the day.
+///   (2) Night deaths (i.e. demon kills) happen at the start of the night.
+///
+/// In more complicated scripts, it might be the case that we cannot model the
+/// night order in a very black-and-white way without painstakingly modelling
+/// the "night order" explicitly. For example in "Bad Moon Rising" script, the
+/// Goon is turned good over evil depending upon the exact character
+/// actions - and the night order is extremely important.
+///
+/// But, as of right now - we have modelled this Time::{Night, Day}, and we can
+/// reconsider simplifying or extending this in the future.
+pub fn poisoning_does_not_move_during_the_day(solver: &Solver, registry: &Registry) {
+    let days: Vec<i32> = TimeIterator::new(registry.until)
+        .into_iter()
+        .filter_map(|time| match time {
+            Time::Day(x) => Some(x),
+            _ => None,
+        })
+        .collect_vec();
+
+    let players = (0..registry.num_players).map(|x| Seat(x)).collect_vec();
+
+    for player in players {
+        for &day in days.iter() {
+            let is_player_poisoned_day = &registry.is_poisoned[&player][&Time::Day(day)];
+            let is_player_poisoned_night = &registry.is_poisoned[&player][&Time::Night(day)];
+            solver.assert(is_player_poisoned_day.implies(is_player_poisoned_night));
+        }
+    }
+}
+
 pub fn mark_characters_not_in_play(
     solver: &Solver,
     registry: &Registry,
