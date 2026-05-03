@@ -1,5 +1,5 @@
 [package]
-name = "botc-core"
+name = "botc-solver"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,3 +7,4 @@ edition = "2024"
 strum = { version = "0.27.2", features = ["derive"] }
 z3 = { version = "0.20" }
 itertools = "0.10.5"
+botc-core = { path = "../botc-core" }

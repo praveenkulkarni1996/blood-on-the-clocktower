@@ -1,10 +1,10 @@
 use z3::Solver;
 
-use botc::Time::*;
-use botc::*;
+use botc_core::Time::*;
+use botc_core::*;
 
 #[allow(unused_variables)]
-fn setup_game() -> Vec<botc::ReportLog> {
+fn setup_game() -> Vec<botc_core::ReportLog> {
     // Live and Imp-Person
     // https://www.youtube.com/watch?v=m14N28Lq-jM
 

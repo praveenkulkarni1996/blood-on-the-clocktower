@@ -3,9 +3,19 @@
 version = 4
 
 [[package]]
-name = "botc"
+name = "botc-core"
 version = "0.1.0"
 dependencies = [
+ "itertools",
+ "strum",
+ "z3",
+]
+
+[[package]]
+name = "botc-solver"
+version = "0.1.0"
+dependencies = [
+ "botc-core",
  "itertools",
  "strum",
  "z3",
