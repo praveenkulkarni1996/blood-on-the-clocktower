@@ -436,21 +436,12 @@ pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registr
                 .map(Seat)
                 .map(|player| &r.is_poisoned[&player][&time]);
 
-            z3::ast::atmost(is_player_poisoned, 1)
+            z3::ast::atleast(is_player_poisoned, 1)
         };
 
-        let is_no_one_poisoned = {
-            let _is_player_poisoned = (0..r.num_players)
-                .map(Seat)
-                .map(|player| &r.is_poisoned[&player][&time]);
-            z3::ast::atmost(_is_player_poisoned, 0)
-        };
-
-        let alive_poisoner_rule = is_someone_alive_poisoner.implies(is_someone_poisoned);
-        let dead_poisoner_rule = !is_someone_alive_poisoner.implies(is_no_one_poisoned);
+        let alive_poisoner_rule = is_someone_alive_poisoner.iff(is_someone_poisoned);
 
         solver.assert(alive_poisoner_rule);
-        solver.assert(dead_poisoner_rule);
     }
 }
 
