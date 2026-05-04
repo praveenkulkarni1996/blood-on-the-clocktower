@@ -393,31 +393,6 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
     }
 }
 
-/// Every player has exactly one character.
-/// TODO(proof): We have not yet modelled starpassing or ScarletWoman.
-pub fn player_has_exactly_one_character(solver: &Solver, registry: &Registry) {
-    for seat in 0..registry.num_players {
-        {
-            let _characters = Character::iter().map(|c| registry.get(Seat(seat), c));
-            solver.assert(z3::ast::atleast(_characters, 1));
-        }
-        {
-            let _characters = Character::iter().map(|c| registry.get(Seat(seat), c));
-            solver.assert(z3::ast::atmost(_characters, 1));
-        }
-    }
-}
-
-/// Every character has at most one player.
-/// NOTE: When the Scarlet Woman / Imp-Starpass mechanic is implemented, this
-/// will need to be updated.
-pub fn character_has_at_most_one_player(solver: &Solver, registry: &Registry) {
-    for c in Character::iter() {
-        let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), c));
-        solver.assert(z3::ast::atmost(_players, 1));
-    }
-}
-
 pub fn atmost_one_player_can_be_poisoned(solver: &Solver, registry: &Registry) {
     for time in TimeIterator::new(registry.until) {
         let _poisoned =
@@ -595,8 +570,7 @@ mod tests {
         let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
 
         // --- Add General Constraints ---
-        player_has_exactly_one_character(&solver, &registry);
-        character_has_at_most_one_player(&solver, &registry);
+        solver.assert(setup::assert_unique_player_tokens(&registry));
 
         // Round-Robin: CHEF - SPY - RECLUSE - WASHERWOMAN - EMPATH
         solver.assert(&registry.is_character[&(Seat(0), Good(Townsfolk(Chef)))]);
@@ -623,8 +597,7 @@ mod tests {
         let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
 
         // --- Add General Constraints ---
-        player_has_exactly_one_character(&solver, &registry);
-        character_has_at_most_one_player(&solver, &registry);
+        solver.assert(setup::assert_unique_player_tokens(&registry));
 
         // Round-Robin: CHEF - SPY - RECLUSE - WASHERWOMAN - EMPATH
         solver.assert(&registry.is_character[&(Seat(0), Good(Townsfolk(Chef)))]);
@@ -651,8 +624,7 @@ mod tests {
         let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
 
         // --- Add General Constraints ---
-        player_has_exactly_one_character(&solver, &registry);
-        character_has_at_most_one_player(&solver, &registry);
+        solver.assert(setup::assert_unique_player_tokens(&registry));
 
         // Round-Robin: CHEF - SPY - RECLUSE - WASHERWOMAN - EMPATH
         solver.assert(&registry.is_character[&(Seat(0), Good(Townsfolk(Chef)))]);

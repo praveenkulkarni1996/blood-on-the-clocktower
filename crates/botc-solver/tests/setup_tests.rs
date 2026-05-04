@@ -14,8 +14,7 @@ fn define_solver(tokens: &[botc_core::Character]) -> Solver {
     let solver = Solver::new();
     let registry = Registry::new(solver.get_context(), tokens.len(), Time::Day(1));
     solver.assert(botc_solver::setup::assert_player_count_rules(&registry));
-    botc_solver::character_has_at_most_one_player(&solver, &registry);
-    botc_solver::player_has_exactly_one_character(&solver, &registry);
+    solver.assert(botc_solver::setup::assert_unique_player_tokens(&registry));
 
     for index in 0..tokens.len() {
         solver.assert(registry.get(Seat(index as i32), tokens[index]));

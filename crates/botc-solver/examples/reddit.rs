@@ -59,13 +59,12 @@ fn main() {
         solver.assert(ast_constraint);
     }
 
-    botc_solver::player_has_exactly_one_character(&solver, &registry);
-    botc_solver::character_has_at_most_one_player(&solver, &registry);
     botc_solver::atmost_one_player_can_be_red_herringed(&solver, &registry);
     botc_solver::atmost_one_player_can_be_poisoned(&solver, &registry);
     botc_solver::poisoner_can_poison_one_person_only_if_alive(&solver, &registry);
     botc_solver::poisoning_does_not_move_during_the_day(&solver, &registry);
     solver.assert(botc_solver::setup::assert_player_count_rules(&registry));
+    solver.assert(botc_solver::setup::assert_unique_player_tokens(&registry));
     solver.assert(botc_solver::life::assert_life_until_death(&registry));
 
     dbg!(solver.check());

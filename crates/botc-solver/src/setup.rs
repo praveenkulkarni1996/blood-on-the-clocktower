@@ -1,4 +1,5 @@
 #![warn(clippy::pedantic)]
+use botc_core::Character;
 use itertools::Itertools;
 
 /// # Panics
@@ -140,4 +141,33 @@ fn assert_setup(r: &super::Registry, setup: PlayerCount) -> z3::ast::Bool {
         & assert_player_count_by_predicate(r, is_demon, setup.demon)
         & assert_player_count_by_predicate(r, is_minion, setup.minion)
         & assert_player_count_by_predicate(r, is_outsider, setup.outsider)
+}
+
+/// Enforce that every player gets exactly one distinct-token.
+/// NOTE: This logic cannot model Imp moves (Scarlet Woman, or via Starpass).
+pub fn assert_unique_player_tokens(r: &super::Registry) -> z3::ast::Bool {
+    let players = (0..r.num_players)
+        .map(botc_core::Player::Seat)
+        .collect_vec();
+
+    // List of variables for "Character $C has at-most one player".
+    let character_has_one_player = Character::iter()
+        .map(|c| z3::ast::atmost(players.iter().map(|&p| r.get(p, c)), 1))
+        .collect_vec();
+
+    // List of variables for "Player $P has at-least one token".
+    let player_has_atleast_one_character = players
+        .iter()
+        .map(|&p| z3::ast::atleast(Character::iter().map(|c| r.get(p, c)), 1))
+        .collect_vec();
+
+    // List of variables for "Player $P has at-most one token".
+    let player_has_atmost_one_character = players
+        .iter()
+        .map(|&p| z3::ast::atmost(Character::iter().map(|c| r.get(p, c)), 1))
+        .collect_vec();
+
+    z3::ast::Bool::and(character_has_one_player.as_slice())
+        & z3::ast::Bool::and(player_has_atleast_one_character.as_slice())
+        & z3::ast::Bool::and(player_has_atmost_one_character.as_slice())
 }
