@@ -21,14 +21,13 @@ fn setup_game() -> Vec<botc_core::ReportLog> {
     let sula = botc_core::Player::Seat(6); // Investigator
 
     vec![
-        // OnTime(Night(1), matthew, WasherwomanSees(aoife, oscar, Librarian)),
-        // OnTime(Night(1), oscar, LibrarianZero),
-        // OnTime(Night(1), josh, EmpathLearnsZero(you, oscar)),
+        OnTime(Night(1), matthew, WasherwomanSees(aoife, oscar, Librarian)),
+        OnTime(Night(1), oscar, LibrarianZero),
+        OnTime(Night(1), josh, EmpathLearnsZero(you, oscar)),
         OnTime(Day(1), you, SlayerKillsDemon(tom)),
-        // // OnTime(Day(1), you, SlayerMisses(tom)),
-        // OnTime(Night(1), aoife, ChefGets(0)),
-        // OnTime(Night(1), tom, Am(Character::Good(Good::Outsider(Recluse)))),
-        // OnTime(Night(1), sula, InvestigatorSees(you, aoife, Baron)),
+        OnTime(Night(1), aoife, ChefGets(0)),
+        OnTime(Night(1), tom, Am(Character::Good(Good::Outsider(Recluse)))),
+        OnTime(Night(1), sula, InvestigatorSees(you, aoife, Baron)),
     ]
 }
 
@@ -52,10 +51,10 @@ fn main() {
     solver.assert(botc_solver::setup::assert_player_count_rules(&registry));
     solver.assert(botc_solver::setup::assert_unique_player_tokens(&registry));
     solver.assert(botc_solver::life::assert_life_until_death(&registry));
-    // solver.assert(registry.get(
-    //     botc_core::Player::Seat(5), /*tom*/
-    //     Character::Good(Good::Outsider(Outsider::Recluse)),
-    // ));
+    solver.assert(registry.get(
+        botc_core::Player::Seat(5), /*tom*/
+        Character::Good(Good::Outsider(Outsider::Recluse)),
+    ));
 
     dbg!(solver.check());
     let model = solver.get_model().expect("Failed to retrieve model");
