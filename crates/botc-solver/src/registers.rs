@@ -63,6 +63,13 @@ pub fn must_townsfolk(r: &super::Registry, p: botc_core::Player) -> z3::ast::Boo
 }
 
 #[must_use]
+pub fn must_outsider(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
+    r.get(p, Good(Outsider(Butler)))
+        | r.get(p, Good(Outsider(Saint)))
+        | r.get(p, Good(Outsider(Drunk)))
+}
+
+#[must_use]
 pub fn can_townsfolk(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
     must_townsfolk(r, p) | r.get(p, Evil(Minion(Spy)))
 }

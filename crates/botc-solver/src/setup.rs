@@ -119,7 +119,7 @@ fn is_outsider(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
         | r.get(p, Good(Outsider(Saint)))
 }
 
-fn assert_player_count_by_predicate(
+pub fn assert_player_count_by_predicate(
     r: &super::Registry,
     predicate: fn(&super::Registry, botc_core::Player) -> z3::ast::Bool,
     count: i8,

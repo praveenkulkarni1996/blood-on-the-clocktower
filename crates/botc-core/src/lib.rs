@@ -178,7 +178,8 @@ impl PartialOrd for Time {
 pub enum Claim {
     Am(Character),
     WasherwomanSees(Player, Player, Townsfolk), /* https://wiki.bloodontheclocktower.com/Washerwoman */
-    LibrarianSees(Player, Player, Outsider),    // https://wiki.bloodontheclocktower.com/Librarian
+    LibrarianZero,
+    LibrarianSees(Player, Player, Outsider), // https://wiki.bloodontheclocktower.com/Librarian
     InvestigatorSees(Player, Player, Minion), /* https://wiki.bloodontheclocktower.com/Investigator */
     ChefGets(i32),                            // https://wiki.bloodontheclocktower.com/Chef
     EmpathLearnsZero(Player, Player),

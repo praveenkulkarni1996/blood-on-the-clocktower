@@ -167,6 +167,16 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
                 )
         }
 
+        // Librarian |alpha| is told no players are registering as outsiders.
+        OnTime(t, alpha, LibrarianZero) => {
+            player_claims_character(r, *alpha, Good(Townsfolk(Librarian)))
+                & is_effective(r, *alpha, *t).implies(setup::assert_player_count_by_predicate(
+                    r,
+                    registers::must_outsider,
+                    0,
+                ))
+        }
+
         // Librarian |alpha| sees that either |bravo| OR |charlie| is the Outsider |outsider|.
         OnTime(t, alpha, LibrarianSees(bravo, charlie, outsider)) => {
             player_claims_character(r, *alpha, Good(Townsfolk(Librarian)))
