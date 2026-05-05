@@ -24,7 +24,7 @@ fn define_solver(tokens: &[botc_core::Character]) -> Solver {
 }
 
 #[test]
-fn test_10_player_baron_2_outsiders() {
+fn test_10p_baron() {
     // NRB Live and Imp-Person
     // https://www.youtube.com/watch?v=m14N28Lq-jM
     let solver = define_solver(
@@ -45,7 +45,7 @@ fn test_10_player_baron_2_outsiders() {
 }
 
 #[test]
-fn test_nrb_live_and_imp_person_expect_fail() {
+fn test_10p_no_baron() {
     // Same as above, but with Scarlet Woman instead of Baron.
     // Now the outsider count is invalid.
     let solver = define_solver(
@@ -69,7 +69,7 @@ fn test_nrb_live_and_imp_person_expect_fail() {
 /// Taken from Reddit, based on this puzzle by /u/Not_Quite_Vertical.
 /// https://www.reddit.com/r/BloodOnTheClocktower/comments/1f6lgjv/trouble_brewing_puzzle/
 #[test]
-fn test_not_throwing_away_my_shot() {
+fn test_7p_baron() {
     let solver = define_solver(
         vec![
             Evil(Demon(Imp)),              // bluffing as Good(Townsfolk(Washerwoman))
@@ -86,7 +86,7 @@ fn test_not_throwing_away_my_shot() {
 }
 
 #[test]
-fn test_seven_player_base_zero_outsiders() {
+fn test_7p_zero_outsider() {
     let solver = define_solver(
         vec![
             Evil(Demon(Imp)),               //
