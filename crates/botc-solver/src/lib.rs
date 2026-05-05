@@ -3,7 +3,7 @@ use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
 
 use z3::ast::Bool;
-use z3::{Context, Solver};
+use z3::Context;
 
 use botc_core::Player::Seat;
 use botc_core::{Character, Claim, Time, TimeIterator};
@@ -33,17 +33,17 @@ pub struct Registry<'ctx> {
     is_red_herring: HashMap<Player, Bool>,
 }
 
-pub fn game_setup(solver: &Solver, r: &Registry) {
+pub fn game_setup(r: &Registry) -> z3::ast::Bool {
     // players and characters
-    solver.assert(setup::assert_player_count_rules(r));
-    solver.assert(setup::assert_unique_player_tokens(r));
-    // life-and-death
-    solver.assert(life::assert_life_until_death(r));
-    // poisoning and red-herring
-    poisoner_can_poison_one_person_only_if_alive(solver, r);
-    poisoning_does_not_move_during_the_day(solver, r);
-    atmost_one_player_can_be_poisoned(solver, r);
-    atmost_one_player_can_be_red_herringed(solver, r);
+    setup::assert_player_count_rules(r)
+        & setup::assert_unique_player_tokens(r)
+        // life-and-death
+        & life::assert_life_until_death(r)
+        // poisoning and red-herring
+        & poisoner_can_poison_one_person_only_if_alive(r)
+        & poisoning_does_not_move_during_the_day(r)
+        & atmost_one_player_can_be_poisoned(r)
+        & atmost_one_player_can_be_red_herringed(r)
 }
 
 fn is_lying(r: &Registry, p: Player) -> z3::ast::Bool {
@@ -406,35 +406,40 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
     }
 }
 
-pub fn atmost_one_player_can_be_poisoned(solver: &Solver, registry: &Registry) {
-    for time in TimeIterator::new(registry.until) {
-        let _poisoned =
-            (0..registry.num_players).map(|seat| &registry.is_poisoned[&Player::Seat(seat)][&time]);
-        solver.assert(z3::ast::atmost(_poisoned, 1));
-    }
+pub fn atmost_one_player_can_be_poisoned(registry: &Registry) -> z3::ast::Bool {
+    let constraints: Vec<_> = TimeIterator::new(registry.until)
+        .map(|time| {
+            let poisoned_vars =
+                (0..registry.num_players).map(|seat| &registry.is_poisoned[&Player::Seat(seat)][&time]);
+            z3::ast::atmost(poisoned_vars, 1)
+        })
+        .collect();
+    z3::ast::Bool::and(constraints.iter().collect_vec().as_slice())
 }
 
-pub fn atmost_one_player_can_be_red_herringed(solver: &Solver, registry: &Registry) {
-    let _red_herringed =
+pub fn atmost_one_player_can_be_red_herringed(registry: &Registry) -> z3::ast::Bool {
+    let red_herringed =
         (0..registry.num_players).map(|seat| &registry.is_red_herring[&Player::Seat(seat)]);
-    solver.assert(z3::ast::atmost(_red_herringed, 1));
+    z3::ast::atmost(red_herringed, 1)
 }
 
 /// We do not yet support the ability for a player to change characters.
 /// There are cases when a Poisoner could become the next Imp, and that is not
 /// yet handled in this case.
-pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registry) {
+pub fn poisoner_can_poison_one_person_only_if_alive(r: &Registry) -> z3::ast::Bool {
     use botc_core::Character::*;
     use botc_core::Evil::*;
     use botc_core::Minion::*;
 
-    for time in TimeIterator::new(r.until) {
-        let is_poisoner_alive = assert_character_is_alive(r, Evil(Minion(Poisoner)), time);
-        let is_someone_poisoned =
-            util::player_any(r, |r, p, t| r.is_poisoned[&p][&t].clone(), time);
-
-        solver.assert(is_poisoner_alive.iff(is_someone_poisoned));
-    }
+    let constraints: Vec<_> = TimeIterator::new(r.until)
+        .map(|time| {
+            let is_poisoner_alive = assert_character_is_alive(r, Evil(Minion(Poisoner)), time);
+            let is_someone_poisoned =
+                util::player_any(r, |r, p, t| r.is_poisoned[&p][&t].clone(), time);
+            is_poisoner_alive.iff(is_someone_poisoned)
+        })
+        .collect();
+    z3::ast::Bool::and(constraints.iter().collect_vec().as_slice())
 }
 
 /// A poisoned player during DAY(x) must be NIGHT(x) as well.
@@ -452,7 +457,7 @@ pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registr
 ///
 /// But, as of right now - we have modelled this Time::{Night, Day}, and we can
 /// reconsider simplifying or extending this in the future.
-pub fn poisoning_does_not_move_during_the_day(solver: &Solver, registry: &Registry) {
+pub fn poisoning_does_not_move_during_the_day(registry: &Registry) -> z3::ast::Bool {
     let days: Vec<i32> = TimeIterator::new(registry.until)
         .filter_map(|time| match time {
             Time::Day(x) => Some(x),
@@ -462,13 +467,20 @@ pub fn poisoning_does_not_move_during_the_day(solver: &Solver, registry: &Regist
 
     let players = (0..registry.num_players).map(Seat).collect_vec();
 
-    for player in players {
-        for &day in days.iter() {
-            let is_player_poisoned_day = &registry.is_poisoned[&player][&Time::Day(day)];
-            let is_player_poisoned_night = &registry.is_poisoned[&player][&Time::Night(day)];
-            solver.assert(is_player_poisoned_day.implies(is_player_poisoned_night));
-        }
-    }
+    let constraints: Vec<_> = players
+        .iter()
+        .flat_map(|player| {
+            days.iter().map(move |&day| {
+                let is_player_poisoned_day =
+                    &registry.is_poisoned[player][&Time::Day(day)];
+                let is_player_poisoned_night =
+                    &registry.is_poisoned[player][&Time::Night(day)];
+                is_player_poisoned_day.implies(is_player_poisoned_night)
+            })
+        })
+        .collect();
+
+    z3::ast::Bool::and(constraints.iter().collect_vec().as_slice())
 }
 
 // Assert that the character is still alive.
@@ -487,11 +499,15 @@ fn assert_character_is_alive(r: &Registry, c: Character, time: Time) -> z3::ast:
     z3::ast::Bool::or(is_player_alive_character.iter().collect_vec().as_slice())
 }
 
-pub fn mark_characters_not_in_play(solver: &Solver, registry: &Registry, characters: &[Character]) {
-    for c in characters.iter() {
-        let _players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), *c));
-        solver.assert(z3::ast::atmost(_players, 0));
-    }
+pub fn mark_characters_not_in_play(registry: &Registry, characters: &[Character]) -> z3::ast::Bool {
+    let constraints: Vec<_> = characters
+        .iter()
+        .map(|c| {
+            let players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), *c));
+            z3::ast::atmost(players, 0)
+        })
+        .collect();
+    z3::ast::Bool::and(constraints.iter().collect_vec().as_slice())
 }
 
 /// A player claims to be a character.

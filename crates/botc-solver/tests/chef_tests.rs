@@ -26,7 +26,7 @@ fn test_chef_spy_recluse_washerwoman_empath_gets_chef_0() {
     solver.assert(registry.get(Seat(4), Good(Townsfolk(Empath))));
 
     // --- Initialize is_poisoned map for relevant players/times ---
-    poisoner_can_poison_one_person_only_if_alive(&solver, &registry);
+    solver.assert(poisoner_can_poison_one_person_only_if_alive(&registry));
 
     // --- Add Chef's Claim Log ---
     // Chef (Player 0) claims a chef number of 0 at Time 0.
@@ -53,7 +53,7 @@ fn test_chef_spy_recluse_washerwoman_empath_gets_chef_1() {
     solver.assert(registry.get(Seat(4), Good(Townsfolk(Empath))));
 
     // --- Initialize is_poisoned map for relevant players/times ---
-    poisoner_can_poison_one_person_only_if_alive(&solver, &registry);
+    solver.assert(poisoner_can_poison_one_person_only_if_alive(&registry));
 
     // --- Add Chef's Claim Log ---
     // Chef (Player 0) claims a chef number of 1 at Time 0.
@@ -81,7 +81,7 @@ fn test_chef_spy_recluse_washerwoman_empath_cannot_get_chef2() {
 
     // --- Initialize is_poisoned map for relevant players/times ---
     // Assert Chef is not poisoned.
-    poisoner_can_poison_one_person_only_if_alive(&solver, &registry);
+    solver.assert(poisoner_can_poison_one_person_only_if_alive(&registry));
 
     // --- Add Chef's Claim Log ---
     // Chef (Player 0) claims a chef number of 2 at Time 0.

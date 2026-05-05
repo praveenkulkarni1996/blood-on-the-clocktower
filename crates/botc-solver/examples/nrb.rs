@@ -162,15 +162,14 @@ fn main() {
         solver.assert(ast_constraint);
     }
 
-    botc_solver::game_setup(&solver, &registry);
-    botc_solver::mark_characters_not_in_play(
-        &solver,
+    solver.assert(botc_solver::game_setup(&registry));
+    solver.assert(botc_solver::mark_characters_not_in_play(
         &registry,
         &vec![
             Character::Evil(Evil::Minion(Minion::ScarletWoman)),
             Character::Evil(Evil::Minion(Minion::Spy)),
         ],
-    );
+    ));
 
     dbg!(solver.check());
     let model = solver.get_model().expect("Failed to retrieve model");

@@ -59,7 +59,7 @@ fn main() {
         solver.assert(ast_constraint);
     }
 
-    botc_solver::game_setup(&solver, &registry);
+    solver.assert(botc_solver::game_setup(&registry));
 
     dbg!(solver.check());
     let model = solver.get_model().expect("Failed to retrieve model");

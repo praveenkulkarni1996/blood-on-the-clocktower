@@ -43,7 +43,7 @@ fn main() {
         solver.assert(ast_constraint);
     }
 
-    botc_solver::game_setup(&solver, &registry);
+    solver.assert(botc_solver::game_setup(&registry));
     // Must demand that he is a recluse.
     solver.assert(registry.get(
         botc_core::Player::Seat(5), /*tom*/
