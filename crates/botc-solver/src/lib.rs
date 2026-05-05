@@ -415,33 +415,12 @@ pub fn poisoner_can_poison_one_person_only_if_alive(solver: &Solver, r: &Registr
     use botc_core::Evil::*;
     use botc_core::Minion::*;
 
-    let is_alive_poisoner = |player: &Player, t: &Time| -> z3::ast::Bool {
-        let is_alive = &r.is_alive[player][t];
-        let is_poisoner = r.get(*player, Evil(Minion(Poisoner)));
-        is_alive & is_poisoner
-    };
-
     for time in TimeIterator::new(r.until) {
-        let is_someone_alive_poisoner = {
-            let is_player_alive_poisoner = (0..r.num_players)
-                .map(Seat)
-                .map(|player| is_alive_poisoner(&player, &time))
-                .collect_vec();
+        let is_poisoner_alive = assert_character_is_alive(r, Evil(Minion(Poisoner)), time);
+        let is_someone_poisoned =
+            util::player_any(r, |r, p, t| r.is_poisoned[&p][&t].clone(), time);
 
-            z3::ast::atleast(is_player_alive_poisoner.iter(), 1)
-        };
-
-        let is_someone_poisoned = {
-            let is_player_poisoned = (0..r.num_players)
-                .map(Seat)
-                .map(|player| &r.is_poisoned[&player][&time]);
-
-            z3::ast::atleast(is_player_poisoned, 1)
-        };
-
-        let alive_poisoner_rule = is_someone_alive_poisoner.iff(is_someone_poisoned);
-
-        solver.assert(alive_poisoner_rule);
+        solver.assert(is_poisoner_alive.iff(is_someone_poisoned));
     }
 }
 
@@ -540,6 +519,23 @@ fn see_character_between_player_pair(
 ) -> Bool {
     is_effective(r, seer, time)
         .implies(registers::as_token(r, a, token) | registers::as_token(r, b, token))
+}
+
+mod util {
+    use botc_core::Player::Seat;
+    use botc_core::{Player, Time};
+    use itertools::Itertools;
+    use z3::ast::Bool;
+
+    // Returns true if a |predicate| holds true for at-least one player at time |time|.
+    pub fn player_any<F>(r: &super::Registry, predicate: F, time: Time) -> Bool
+    where
+        F: Fn(&super::Registry, Player, Time) -> Bool,
+    {
+        let players = (0..r.num_players).map(Seat);
+        let is_player_matching = players.map(|player| predicate(r, player, time));
+        Bool::or(is_player_matching.collect_vec().as_slice())
+    }
 }
 
 #[cfg(test)]
