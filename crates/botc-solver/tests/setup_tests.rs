@@ -27,20 +27,17 @@ fn define_solver(tokens: &[botc_core::Character]) -> Solver {
 fn test_10p_baron() {
     // NRB Live and Imp-Person
     // https://www.youtube.com/watch?v=m14N28Lq-jM
-    let solver = define_solver(
-        vec![
-            Evil(Demon(Imp)),
-            Evil(Minion(Poisoner)),
-            Good(Outsider(Drunk)),
-            Good(Outsider(Recluse)),
-            Good(Townsfolk(Chef)),
-            Good(Townsfolk(FortuneTeller)),
-            Good(Townsfolk(Librarian)),
-            Good(Townsfolk(Mayor)),
-            Good(Townsfolk(Monk)),
-        ]
-        .as_slice(),
-    );
+    let solver = define_solver(&[
+        Evil(Demon(Imp)),
+        Evil(Minion(Poisoner)),
+        Good(Outsider(Drunk)),
+        Good(Outsider(Recluse)),
+        Good(Townsfolk(Chef)),
+        Good(Townsfolk(FortuneTeller)),
+        Good(Townsfolk(Librarian)),
+        Good(Townsfolk(Mayor)),
+        Good(Townsfolk(Monk)),
+    ]);
     assert_eq!(solver.check(), z3::SatResult::Sat);
 }
 
@@ -48,21 +45,18 @@ fn test_10p_baron() {
 fn test_10p_no_baron() {
     // Same as above, but with Scarlet Woman instead of Baron.
     // Now the outsider count is invalid.
-    let solver = define_solver(
-        vec![
-            Evil(Demon(Imp)),
-            Evil(Minion(ScarletWoman)),
-            Evil(Minion(Poisoner)),
-            Good(Outsider(Drunk)),
-            Good(Outsider(Recluse)),
-            Good(Townsfolk(Chef)),
-            Good(Townsfolk(FortuneTeller)),
-            Good(Townsfolk(Librarian)),
-            Good(Townsfolk(Mayor)),
-            Good(Townsfolk(Monk)),
-        ]
-        .as_slice(),
-    );
+    let solver = define_solver(&[
+        Evil(Demon(Imp)),
+        Evil(Minion(ScarletWoman)),
+        Evil(Minion(Poisoner)),
+        Good(Outsider(Drunk)),
+        Good(Outsider(Recluse)),
+        Good(Townsfolk(Chef)),
+        Good(Townsfolk(FortuneTeller)),
+        Good(Townsfolk(Librarian)),
+        Good(Townsfolk(Mayor)),
+        Good(Townsfolk(Monk)),
+    ]);
     assert_eq!(solver.check(), z3::SatResult::Unsat);
 }
 
@@ -70,34 +64,28 @@ fn test_10p_no_baron() {
 /// https://www.reddit.com/r/BloodOnTheClocktower/comments/1f6lgjv/trouble_brewing_puzzle/
 #[test]
 fn test_7p_baron() {
-    let solver = define_solver(
-        vec![
-            Evil(Demon(Imp)),              // bluffing as Good(Townsfolk(Washerwoman))
-            Good(Outsider(Drunk)),         // appearing as Good(Townsfolk(Librarian)),
-            Good(Townsfolk(Empath)),       // -
-            Good(Townsfolk(Slayer)),       // -
-            Evil(Minion(Baron)),           // bluffing as Good(Townsfolk(Chef))
-            Good(Outsider(Recluse)),       // -
-            Good(Townsfolk(Investigator)), // -
-        ]
-        .as_slice(),
-    );
+    let solver = define_solver(&[
+        Evil(Demon(Imp)),              // bluffing as Good(Townsfolk(Washerwoman))
+        Good(Outsider(Drunk)),         // appearing as Good(Townsfolk(Librarian)),
+        Good(Townsfolk(Empath)),       // -
+        Good(Townsfolk(Slayer)),       // -
+        Evil(Minion(Baron)),           // bluffing as Good(Townsfolk(Chef))
+        Good(Outsider(Recluse)),       // -
+        Good(Townsfolk(Investigator)), // -
+    ]);
     assert_eq!(solver.check(), z3::SatResult::Sat);
 }
 
 #[test]
 fn test_7p_zero_outsider() {
-    let solver = define_solver(
-        vec![
-            Evil(Demon(Imp)),               //
-            Evil(Minion(Poisoner)),         //
-            Good(Townsfolk(Empath)),        //
-            Good(Townsfolk(FortuneTeller)), //
-            Good(Townsfolk(Investigator)),  //
-            Good(Townsfolk(Slayer)),        //
-            Good(Townsfolk(Soldier)),       //
-        ]
-        .as_slice(),
-    );
+    let solver = define_solver(&[
+        Evil(Demon(Imp)),               //
+        Evil(Minion(Poisoner)),         //
+        Good(Townsfolk(Empath)),        //
+        Good(Townsfolk(FortuneTeller)), //
+        Good(Townsfolk(Investigator)),  //
+        Good(Townsfolk(Slayer)),        //
+        Good(Townsfolk(Soldier)),       //
+    ]);
     assert_eq!(solver.check(), z3::SatResult::Sat);
 }
