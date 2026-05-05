@@ -89,3 +89,75 @@ fn test_7p_zero_outsider() {
     ]);
     assert_eq!(solver.check(), z3::SatResult::Sat);
 }
+
+#[test]
+fn test_7p_too_many_minions() {
+    let solver = define_solver(&[
+        Evil(Demon(Imp)),
+        Evil(Minion(Poisoner)),
+        Evil(Minion(ScarletWoman)), // 2nd minion
+        Good(Townsfolk(Empath)),
+        Good(Townsfolk(FortuneTeller)),
+        Good(Townsfolk(Investigator)),
+        Good(Townsfolk(Slayer)),
+    ]);
+    assert_eq!(solver.check(), z3::SatResult::Unsat);
+}
+
+#[test]
+fn test_7p_too_many_demons() {
+    // 7 players, 2 imps.
+    let solver = define_solver(&[
+        Evil(Demon(Imp)),
+        Evil(Demon(Imp)), // This will actually fail unique token check too, but let's see.
+        Evil(Minion(Poisoner)),
+        Good(Townsfolk(Empath)),
+        Good(Townsfolk(FortuneTeller)),
+        Good(Townsfolk(Investigator)),
+        Good(Townsfolk(Slayer)),
+    ]);
+    assert_eq!(solver.check(), z3::SatResult::Unsat);
+}
+
+#[test]
+fn test_8p_wrong_outsider_count() {
+    // 8 players should have 1 outsider.
+    let solver = define_solver(&[
+        Evil(Demon(Imp)),
+        Evil(Minion(Poisoner)),
+        Good(Townsfolk(Chef)),
+        Good(Townsfolk(Empath)),
+        Good(Townsfolk(FortuneTeller)),
+        Good(Townsfolk(Investigator)),
+        Good(Townsfolk(Slayer)),
+        Good(Townsfolk(Soldier)),
+    ]);
+    assert_eq!(solver.check(), z3::SatResult::Unsat);
+}
+
+#[test]
+fn test_duplicate_townsfolk() {
+    // 7 players, two Chefs.
+    let solver = define_solver(&[
+        Evil(Demon(Imp)),
+        Evil(Minion(Poisoner)),
+        Good(Townsfolk(Chef)),
+        Good(Townsfolk(Chef)), // Duplicate
+        Good(Townsfolk(FortuneTeller)),
+        Good(Townsfolk(Investigator)),
+        Good(Townsfolk(Slayer)),
+    ]);
+    assert_eq!(solver.check(), z3::SatResult::Unsat);
+}
+
+#[test]
+fn test_4p_invalid() {
+    // 4 players is not a valid game size in our BASE_SETUP.
+    let solver = define_solver(&[
+        Evil(Demon(Imp)),
+        Evil(Minion(Poisoner)),
+        Good(Townsfolk(Chef)),
+        Good(Townsfolk(Empath)),
+    ]);
+    assert_eq!(solver.check(), z3::SatResult::Unsat);
+}
