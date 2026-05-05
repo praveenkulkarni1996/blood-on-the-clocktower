@@ -1,4 +1,3 @@
-// WARNING: This code is not yet working.
 use botc_core::Time::*;
 use botc_core::*;
 
