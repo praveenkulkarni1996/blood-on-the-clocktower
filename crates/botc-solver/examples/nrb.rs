@@ -162,17 +162,14 @@ fn main() {
         solver.assert(ast_constraint);
     }
 
-    botc_solver::atmost_one_player_can_be_red_herringed(&solver, &registry);
-    botc_solver::atmost_one_player_can_be_poisoned(&solver, &registry);
-    botc_solver::poisoner_can_poison_one_person_only_if_alive(&solver, &registry);
-    botc_solver::poisoning_does_not_move_during_the_day(&solver, &registry);
-    solver.assert(botc_solver::setup::assert_player_count_rules(&registry));
-    solver.assert(botc_solver::setup::assert_unique_player_tokens(&registry));
-    solver.assert(botc_solver::life::assert_life_until_death(&registry));
+    botc_solver::game_setup(&solver, &registry);
     botc_solver::mark_characters_not_in_play(
         &solver,
         &registry,
-        &vec![Character::Evil(Evil::Minion(Minion::ScarletWoman))],
+        &vec![
+            Character::Evil(Evil::Minion(Minion::ScarletWoman)),
+            Character::Evil(Evil::Minion(Minion::Spy)),
+        ],
     );
 
     dbg!(solver.check());

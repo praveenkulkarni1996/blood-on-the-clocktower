@@ -8,13 +8,13 @@ use botc_core::Player::Seat;
 use botc_core::Time;
 use botc_core::Townsfolk::*;
 use botc_solver::Registry;
+use botc_solver::game_setup;
 use z3::Solver;
 
 fn define_solver(tokens: &[botc_core::Character]) -> Solver {
     let solver = Solver::new();
     let registry = Registry::new(solver.get_context(), tokens.len(), Time::Day(1));
-    solver.assert(botc_solver::setup::assert_player_count_rules(&registry));
-    solver.assert(botc_solver::setup::assert_unique_player_tokens(&registry));
+    game_setup(&solver, &registry);
 
     for index in 0..tokens.len() {
         solver.assert(registry.get(Seat(index as i32), tokens[index]));

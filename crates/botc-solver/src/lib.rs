@@ -33,6 +33,19 @@ pub struct Registry<'ctx> {
     is_red_herring: HashMap<Player, Bool>,
 }
 
+pub fn game_setup(solver: &Solver, r: &Registry) {
+    // players and characters
+    solver.assert(setup::assert_player_count_rules(r));
+    solver.assert(setup::assert_unique_player_tokens(r));
+    // life-and-death
+    solver.assert(life::assert_life_until_death(r));
+    // poisoning and red-herring
+    poisoner_can_poison_one_person_only_if_alive(solver, r);
+    poisoning_does_not_move_during_the_day(solver, r);
+    atmost_one_player_can_be_poisoned(solver, r);
+    atmost_one_player_can_be_red_herringed(solver, r);
+}
+
 fn is_lying(r: &Registry, p: Player) -> z3::ast::Bool {
     use botc_core::Character::*;
     use botc_core::Demon::*;
