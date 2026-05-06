@@ -152,16 +152,33 @@ fn setup_game() -> Vec<botc_core::ReportLog> {
 fn main() {
     let claim_logs = setup_game();
 
+    use botc_core::Player::Seat;
+    use botc_core::{Character, Demon, Evil, Minion};
+
+    // ------------------------------------------------------------------
+    // Single-solver incremental solving using push/pop scopes.
+    //
+    // Instead of creating a fresh Solver + Registry for every possible
+    // Demon candidate (which re-encodes the entire problem 10 times),
+    // we create ONE solver and ONE registry, assert the permanent
+    // constraints only once, and then use Z3 scopes (push/pop) to
+    // temporarily force each player to be the Imp.
+    //
+    // This is much more efficient and demonstrates proper use of
+    // Z3's incremental solving capabilities for model enumeration.
+    // ------------------------------------------------------------------
+
+    // Create solver and registry only ONCE
     let solver = z3::Solver::new();
     let registry = botc_solver::Registry::new(solver.get_context(), 10, Day(6));
 
+    // Assert the permanent part of the problem only ONCE
+    // (all player claims + game setup rules + forbidden characters).
     let history = vec![];
-
     for &log in claim_logs.iter() {
         let ast_constraint = botc_solver::constrain(&registry, &history, &log);
         solver.assert(ast_constraint);
     }
-
     solver.assert(botc_solver::game_setup(&registry));
     solver.assert(botc_solver::mark_characters_not_in_play(
         &registry,
@@ -171,7 +188,35 @@ fn main() {
         ],
     ));
 
-    dbg!(solver.check());
-    let model = solver.get_model().expect("Failed to retrieve model");
-    dbg!(model);
+    // Now enumerate every possible Imp using lightweight scopes.
+    // Each push/pop pair adds and then removes only the "this player
+    // is the Imp" assertion. The heavy constraints stay in the solver.
+    for seat in 0..10 {
+        let demon_candidate = Seat(seat);
+
+        solver.push(); // enter a new temporary scope
+
+        // Force this specific player to be the Demon (Imp)
+        let demon_imp = Character::Evil(Evil::Demon(Demon::Imp));
+        let imp_var = registry.get(demon_candidate, demon_imp);
+        solver.assert(imp_var.clone());
+
+        match solver.check() {
+            z3::SatResult::Sat => {
+                println!("=== SAT WORLD: Seat({}) is the Imp ===", seat);
+                if let Some(model) = solver.get_model() {
+                    // Use the explicit path into the debugging module
+                    botc_solver::debugging::print_true_variables(&model, &registry);
+                }
+            }
+            z3::SatResult::Unsat => {
+                println!("=== UNSAT: Seat({}) cannot be the Imp ===", seat);
+            }
+            other => {
+                println!("=== UNKNOWN: Seat({}) => {:?}", seat, other);
+            }
+        }
+
+        solver.pop(1); // backtrack — removes only the forcing literal above
+    }
 }

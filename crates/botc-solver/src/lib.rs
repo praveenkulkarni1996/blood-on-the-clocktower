@@ -13,6 +13,10 @@ pub mod life;
 pub mod registers;
 pub mod setup;
 
+/// Debugging / exploration helpers (e.g. model inspection).
+/// Not part of the stable public API.
+pub mod debugging;
+
 pub struct Registry<'ctx> {
     _context: &'ctx Context,
 
