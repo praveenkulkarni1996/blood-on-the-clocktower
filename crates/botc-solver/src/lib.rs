@@ -2,7 +2,6 @@ use core::panic;
 use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
 
-use z3::Context;
 use z3::ast::Bool;
 
 use botc_core::Player::Seat;
@@ -17,9 +16,7 @@ pub mod setup;
 /// Not part of the stable public API.
 pub mod debugging;
 
-pub struct Registry<'ctx> {
-    _context: &'ctx Context,
-
+pub struct Registry {
     num_players: i32,
 
     until: Time,
@@ -75,9 +72,9 @@ fn can_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
     registers::can_evil(r, *p1) & registers::can_evil(r, *p2)
 }
 
-impl<'ctx> Registry<'ctx> {
-    /// Create a new registry of variables for the given context.
-    pub fn new(context: &Context, num_players: usize, until: Time) -> Registry<'_> {
+impl Registry {
+    /// Create a new registry of variables.
+    pub fn new(num_players: usize, until: Time) -> Registry {
         let mut is = HashMap::new();
         for seat in 0..num_players {
             let player = Player::Seat(seat.try_into().unwrap());
@@ -135,7 +132,6 @@ impl<'ctx> Registry<'ctx> {
         };
 
         Registry {
-            _context: context,
             num_players: num_players.try_into().unwrap(),
             until,
 

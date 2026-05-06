@@ -13,7 +13,7 @@ use z3::Solver;
 
 fn define_solver(tokens: &[botc_core::Character]) -> Solver {
     let solver = Solver::new();
-    let registry = Registry::new(solver.get_context(), tokens.len(), Time::Day(1));
+    let registry = Registry::new(tokens.len(), Time::Day(1));
     solver.assert(game_setup(&registry));
 
     for index in 0..tokens.len() {

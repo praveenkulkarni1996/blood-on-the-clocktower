@@ -13,7 +13,7 @@ use z3::Solver;
 #[test]
 fn test_chef_spy_recluse_washerwoman_empath_gets_chef_0() {
     let solver = Solver::new();
-    let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
+    let registry = Registry::new(5, Time::Night(1));
 
     // --- Add General Constraints ---
     solver.assert(&setup::assert_unique_player_tokens(&registry));
@@ -40,7 +40,7 @@ fn test_chef_spy_recluse_washerwoman_empath_gets_chef_0() {
 #[test]
 fn test_chef_spy_recluse_washerwoman_empath_gets_chef_1() {
     let solver = Solver::new();
-    let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
+    let registry = Registry::new(5, Time::Night(1));
 
     // --- Add General Constraints ---
     solver.assert(&setup::assert_unique_player_tokens(&registry));
@@ -67,7 +67,7 @@ fn test_chef_spy_recluse_washerwoman_empath_gets_chef_1() {
 #[test]
 fn test_chef_spy_recluse_washerwoman_empath_cannot_get_chef2() {
     let solver = Solver::new();
-    let registry = Registry::new(solver.get_context(), 5, Time::Night(1));
+    let registry = Registry::new(5, Time::Night(1));
 
     // --- Add General Constraints ---
     solver.assert(&setup::assert_unique_player_tokens(&registry));

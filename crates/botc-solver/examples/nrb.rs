@@ -170,7 +170,7 @@ fn main() {
 
     // Create solver and registry only ONCE
     let solver = z3::Solver::new();
-    let registry = botc_solver::Registry::new(solver.get_context(), 10, Day(6));
+    let registry = botc_solver::Registry::new(10, Day(6));
 
     // Assert the permanent part of the problem only ONCE
     // (all player claims + game setup rules + forbidden characters).

@@ -34,7 +34,7 @@ fn main() {
     let claim_logs = setup_game();
 
     let solver = z3::Solver::new();
-    let registry = botc_solver::Registry::new(solver.get_context(), 7, Day(2));
+    let registry = botc_solver::Registry::new(7, Day(2));
 
     let history = vec![];
 
