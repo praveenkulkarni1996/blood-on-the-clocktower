@@ -2,8 +2,8 @@ use core::panic;
 use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
 
-use z3::ast::Bool;
 use z3::Context;
+use z3::ast::Bool;
 
 use botc_core::Player::Seat;
 use botc_core::{Character, Claim, Time, TimeIterator};
@@ -409,8 +409,8 @@ pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3
 pub fn atmost_one_player_can_be_poisoned(registry: &Registry) -> z3::ast::Bool {
     let constraints: Vec<_> = TimeIterator::new(registry.until)
         .map(|time| {
-            let poisoned_vars =
-                (0..registry.num_players).map(|seat| &registry.is_poisoned[&Player::Seat(seat)][&time]);
+            let poisoned_vars = (0..registry.num_players)
+                .map(|seat| &registry.is_poisoned[&Player::Seat(seat)][&time]);
             z3::ast::atmost(poisoned_vars, 1)
         })
         .collect();
@@ -471,10 +471,8 @@ pub fn poisoning_does_not_move_during_the_day(registry: &Registry) -> z3::ast::B
         .iter()
         .flat_map(|player| {
             days.iter().map(move |&day| {
-                let is_player_poisoned_day =
-                    &registry.is_poisoned[player][&Time::Day(day)];
-                let is_player_poisoned_night =
-                    &registry.is_poisoned[player][&Time::Night(day)];
+                let is_player_poisoned_day = &registry.is_poisoned[player][&Time::Day(day)];
+                let is_player_poisoned_night = &registry.is_poisoned[player][&Time::Night(day)];
                 is_player_poisoned_day.implies(is_player_poisoned_night)
             })
         })
@@ -503,7 +501,8 @@ pub fn mark_characters_not_in_play(registry: &Registry, characters: &[Character]
     let constraints: Vec<_> = characters
         .iter()
         .map(|c| {
-            let players = (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), *c));
+            let players =
+                (0..registry.num_players).map(|seat| registry.get(Player::Seat(seat), *c));
             z3::ast::atmost(players, 0)
         })
         .collect();
