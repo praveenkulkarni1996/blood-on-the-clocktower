@@ -21,6 +21,9 @@ jobs:
       - name: Rustfmt Check
         run: cargo fmt --all -- --check
 
+      - name: Build
+        run: cargo build --all-targets
+
       - name: Clippy Check
         run: cargo clippy --all-targets -- -D warnings
 
