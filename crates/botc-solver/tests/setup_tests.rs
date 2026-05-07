@@ -4,24 +4,11 @@ use botc_core::Evil::*;
 use botc_core::Good::*;
 use botc_core::Minion::*;
 use botc_core::Outsider::*;
-use botc_core::Player::Seat;
-use botc_core::Time;
 use botc_core::Townsfolk::*;
-use botc_solver::Registry;
-use botc_solver::game_setup;
-use z3::Solver;
 
-fn define_solver(tokens: &[botc_core::Character]) -> Solver {
-    let solver = Solver::new();
-    let registry = Registry::new(tokens.len(), Time::Day(1));
-    solver.assert(game_setup(&registry));
-
-    for index in 0..tokens.len() {
-        solver.assert(registry.get(Seat(index as i32), tokens[index]));
-    }
-
-    solver
-}
+#[path = "define_solver.rs"]
+mod define_solver;
+use define_solver::define_solver;
 
 #[test]
 fn test_10p_baron() {
