@@ -22,7 +22,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy Check
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
 
       - name: Run Tests
-        run: cargo test --verbose
+        run: cargo test --all-targets --verbose

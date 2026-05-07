@@ -32,7 +32,7 @@ fn test_chef_spy_recluse_washerwoman_imp_empath_reports_chef_0() {
 
     // Chef claims "0" — this is consistent with the seating under the full rules.
     let chef_claim = ReportLog::OnTime(Time::Night(1), Seat(0), Claim::ChefGets(0));
-    solver.assert(constrain(&registry, &vec![], &chef_claim));
+    solver.assert(constrain(&registry, &[], &chef_claim));
 
     assert_eq!(solver.check(), z3::SatResult::Sat);
 }
@@ -55,7 +55,7 @@ fn test_chef_spy_recluse_washerwoman_imp_empath_reports_chef_1() {
 
     // Chef claims "1" — this remains possible under the full rules.
     let chef_claim = ReportLog::OnTime(Time::Night(1), Seat(0), Claim::ChefGets(1));
-    solver.assert(constrain(&registry, &vec![], &chef_claim));
+    solver.assert(constrain(&registry, &[], &chef_claim));
 
     assert_eq!(solver.check(), z3::SatResult::Sat);
 }
@@ -78,7 +78,7 @@ fn test_chef_spy_recluse_washerwoman_imp_empath_reports_chef_2() {
     // Chef claims "2". With only two isolated evils there is no way to get a count of 2.
     // This remains correctly Unsat under the full rules.
     let chef_claim = ReportLog::OnTime(Time::Night(1), Seat(0), Claim::ChefGets(2));
-    solver.assert(constrain(&registry, &vec![], &chef_claim));
+    solver.assert(constrain(&registry, &[], &chef_claim));
 
     assert_eq!(solver.check(), z3::SatResult::Unsat);
 }

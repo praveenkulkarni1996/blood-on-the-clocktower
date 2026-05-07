@@ -182,7 +182,7 @@ fn main() {
     solver.assert(botc_solver::game_setup(&registry));
     solver.assert(botc_solver::mark_characters_not_in_play(
         &registry,
-        &vec![
+        &[
             Character::Evil(Evil::Minion(Minion::ScarletWoman)),
             Character::Evil(Evil::Minion(Minion::Spy)),
         ],

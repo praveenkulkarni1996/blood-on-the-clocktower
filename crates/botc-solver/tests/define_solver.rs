@@ -1,5 +1,5 @@
 use botc_core::{Character, Player::Seat, Time};
-use botc_solver::{game_setup, Registry};
+use botc_solver::{Registry, game_setup};
 use z3::Solver;
 
 /// High-level helper that creates a solver with a *complete* game setup

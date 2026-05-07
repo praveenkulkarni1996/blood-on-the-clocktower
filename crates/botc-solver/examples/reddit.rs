@@ -5,7 +5,6 @@ use botc_core::*;
 /// https://www.reddit.com/r/BloodOnTheClocktower/comments/1f6lgjv/trouble_brewing_puzzle/
 ///
 /// This seems to allow for many different solutions.
-
 #[allow(unused_variables)]
 fn setup_game() -> Vec<botc_core::ReportLog> {
     // Cyclic seating order starting from Erika
