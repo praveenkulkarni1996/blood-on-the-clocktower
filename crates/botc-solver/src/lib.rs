@@ -46,7 +46,7 @@ pub fn game_setup(r: &Registry) -> z3::ast::Bool {
         & atmost_one_player_can_be_red_herringed(r)
 }
 
-fn is_lying(r: &Registry, p: Player) -> z3::ast::Bool {
+fn can_lie(r: &Registry, p: Player) -> z3::ast::Bool {
     use botc_core::Character::*;
     use botc_core::Demon::*;
     use botc_core::Evil::*;
@@ -54,7 +54,7 @@ fn is_lying(r: &Registry, p: Player) -> z3::ast::Bool {
     use botc_core::Minion::*;
     use botc_core::Outsider::*;
 
-    // Only drunks + minions + demons will lie about their role.
+    // Roles that are allowed to lie (Drunk is poisoned, minions + demons deliberately deceive).
     r.get(p, Good(Outsider(Drunk)))
         | r.get(p, Evil(Minion(Baron)))
         | r.get(p, Evil(Minion(Poisoner)))
@@ -161,10 +161,10 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
     match log {
         // Character |alpha| claims to be |character|.
         OnTime(_t, alpha, Am(character)) => {
-            let alpha_is_lying = &is_lying(r, *alpha);
+            let alpha_can_lie = &can_lie(r, *alpha);
             let alpha_is_character = r.get(*alpha, *character);
 
-            alpha_is_lying | alpha_is_character
+            alpha_can_lie | alpha_is_character
         }
         // Washerwoman |alpha| sees |bravo| OR |charlie| as character |townsfolk|.
         OnTime(t, alpha, WasherwomanSees(bravo, charlie, townsfolk)) => {
@@ -509,8 +509,9 @@ pub fn mark_characters_not_in_play(registry: &Registry, characters: &[Character]
 }
 
 /// A player claims to be a character.
+/// Valid if they really are that character, *or* they are a role that is allowed to lie.
 fn player_claims_character(r: &Registry, claimant: Player, character: Character) -> Bool {
-    is_lying(r, claimant) ^ r.get(claimant, character)
+    r.get(claimant, character) | can_lie(r, claimant)
 }
 
 fn player_must_character(r: &Registry, claimant: Player, character: Character) -> Bool {
@@ -530,10 +531,10 @@ fn player_sees_other_players_character(
 
 // Validates that a player's ablity should correctly have the right effect.
 fn is_effective(r: &Registry, p: Player, t: Time) -> Bool {
-    let player_is_lying: Bool = is_lying(r, p);
+    let player_can_lie: Bool = can_lie(r, p);
     let player_is_poisoned: &Bool = &r.is_poisoned[&p][&t];
 
-    (!player_is_lying) & (!player_is_poisoned)
+    (!player_can_lie) & (!player_is_poisoned)
 }
 
 fn see_character_between_player_pair(
