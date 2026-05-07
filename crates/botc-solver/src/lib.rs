@@ -148,7 +148,7 @@ impl Registry {
     }
 }
 
-pub fn constrain(r: &Registry, _history: &Vec<ReportLog>, log: &ReportLog) -> z3::ast::Bool {
+pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::ast::Bool {
     use Character::*;
     use Claim::*;
     use botc_core::Demon::*;
