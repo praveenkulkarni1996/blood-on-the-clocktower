@@ -445,10 +445,18 @@ pub fn atmost_one_player_can_be_poisoned(registry: &Registry) -> z3::ast::Bool {
 }
 
 #[must_use]
-pub fn atmost_one_player_can_be_red_herringed(registry: &Registry) -> z3::ast::Bool {
-    let red_herringed =
-        (0..registry.num_players).map(|seat| &registry.is_red_herring[&Player::Seat(seat)]);
-    z3::ast::atmost(red_herringed, 1)
+pub fn atmost_one_player_can_be_red_herringed(r: &Registry) -> z3::ast::Bool {
+    let red_herringed = (0..r.num_players).map(|seat| &r.is_red_herring[&Player::Seat(seat)]);
+    let atmost_one = z3::ast::atmost(red_herringed, 1);
+
+    let red_herring_must_be_good = (0..r.num_players)
+        .map(|seat| {
+            let p = Player::Seat(seat);
+            r.is_red_herring(p).implies(registers::can_good(r, p))
+        })
+        .collect_vec();
+
+    atmost_one & z3::ast::Bool::and(red_herring_must_be_good.iter().collect_vec().as_slice())
 }
 
 /// We do not yet support the ability for a player to change characters.
