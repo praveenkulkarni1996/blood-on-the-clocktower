@@ -1,3 +1,5 @@
+#![deny(clippy::pedantic)]
+
 /// This is only supporting Trouble Brewing.
 use strum::{EnumIter, IntoEnumIterator};
 
@@ -93,7 +95,7 @@ impl Character {
 /// follow a 1-indexed night naming convention, i.e. we have:
 /// Night-1, Day-1, Night-2, etc.
 ///
-/// Since we have a custom "equality" function, but a regular hash() - rust is
+/// Since we have a custom "equality" function, but a regular `hash()` - rust is
 /// worried that we will define a == b but hash(a) != hash(b). I promise to not
 /// do that, dear clippy - so please silence this warning.
 #[allow(clippy::derived_hash_with_manual_eq)]
@@ -109,6 +111,7 @@ pub struct TimeIterator {
 }
 
 impl TimeIterator {
+    #[must_use]
     pub fn new(end: Time) -> Self {
         Self {
             current: Time::Night(1),
@@ -116,6 +119,7 @@ impl TimeIterator {
         }
     }
 
+    #[must_use]
     pub fn new_with_start(start: Time, end: Time) -> Self {
         Self {
             current: start,
@@ -147,13 +151,13 @@ impl Iterator for TimeIterator {
 impl Ord for Time {
     /// The ordering is: Night(1) < Day(1) < Night(2) < Day(2) < ...
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        fn canonicalize(t: &Time) -> i32 {
+        fn canonicalize(t: Time) -> i32 {
             match t {
                 Time::Night(x) => 2 * x,
                 Time::Day(x) => (2 * x) + 1,
             }
         }
-        canonicalize(self).cmp(&canonicalize(other))
+        canonicalize(*self).cmp(&canonicalize(*other))
     }
 }
 
