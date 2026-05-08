@@ -18,8 +18,9 @@ use define_solver::define_solver_until;
 #[test]
 fn test_chef_spy_recluse_washerwoman_imp_empath_reports_chef_0() {
     // 6-player circle: CHEF - SPY - RECLUSE - WASHERWOMAN - IMP - EMPATH
-    // The two fixed evils are isolated, so a truthful Chef can report 0 (when Recluse does
-    // not register evil) or 1 (when it does). This test covers the 0 case.
+    // The two fixed evils are isolated, so a truthful Chef can report 0 (when
+    // Recluse does not register evil) or 1 (when it does). This test covers the
+    // 0 case.
     let (solver, registry) = define_solver_until(
         &[
             Good(Townsfolk(Chef)),
@@ -77,8 +78,8 @@ fn test_chef_spy_recluse_washerwoman_imp_empath_reports_chef_2() {
         Time::Night(1),
     );
 
-    // Chef claims "2". With only two isolated evils there is no way to get a count of 2.
-    // This remains correctly Unsat under the full rules.
+    // Chef claims "2". With only two isolated evils there is no way to get a count
+    // of 2. This remains correctly Unsat under the full rules.
     let chef_claim = ReportLog::OnTime(Time::Night(1), Seat(0), Claim::ChefGets(2));
     solver.assert(constrain(&registry, &[], &chef_claim));
 

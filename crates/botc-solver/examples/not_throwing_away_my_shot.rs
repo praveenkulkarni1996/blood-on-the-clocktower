@@ -46,7 +46,7 @@ fn main() {
     solver.assert(botc_solver::game_setup(&registry));
     // Must demand that he is a recluse.
     solver.assert(registry.get(
-        botc_core::Player::Seat(5), /*tom*/
+        botc_core::Player::Seat(5), /* tom */
         Character::Good(Good::Outsider(Outsider::Recluse)),
     ));
 

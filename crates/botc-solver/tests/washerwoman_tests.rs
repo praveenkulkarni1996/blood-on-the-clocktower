@@ -18,7 +18,8 @@ use define_solver::define_solver_until;
 #[test]
 fn test_washerwoman_sees_first_correctly_registers() {
     // 6-player circle: WASHERWOMAN - CHEF - EMPATH - SPY - RECLUSE - IMP
-    // WasherwomanSees(first, second, ...) works because |first| is correctly registering.
+    // WasherwomanSees(first, second, ...) works because |first| is correctly
+    // registering.
     let (solver, registry) = define_solver_until(
         &[
             Good(Townsfolk(Washerwoman)),
@@ -44,7 +45,8 @@ fn test_washerwoman_sees_first_correctly_registers() {
 #[test]
 fn test_washerwoman_sees_second_correctly_registers() {
     // 6-player circle: WASHERWOMAN - CHEF - EMPATH - SPY - RECLUSE - IMP
-    // WasherwomanSees(first, second, ...) works because |second| is correctly registering.
+    // WasherwomanSees(first, second, ...) works because |second| is correctly
+    // registering.
     let (solver, registry) = define_solver_until(
         &[
             Good(Townsfolk(Washerwoman)),
@@ -70,7 +72,8 @@ fn test_washerwoman_sees_second_correctly_registers() {
 #[test]
 fn test_washerwoman_sees_via_spy_misregistration() {
     // 6-player circle: WASHERWOMAN - CHEF - EMPATH - SPY - RECLUSE - IMP
-    // WasherwomanSees(first, second, ...) works because either |first| or |second| is a Spy who can misregister.
+    // WasherwomanSees(first, second, ...) works because either |first| or |second|
+    // is a Spy who can misregister.
     let (solver, registry) = define_solver_until(
         &[
             Good(Townsfolk(Washerwoman)),

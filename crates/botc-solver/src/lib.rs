@@ -57,7 +57,8 @@ fn can_lie(r: &Registry, p: Player) -> z3::ast::Bool {
     use botc_core::Minion::{Baron, Poisoner, ScarletWoman, Spy};
     use botc_core::Outsider::Drunk;
 
-    // Roles that are allowed to lie (Drunk is poisoned, minions + demons deliberately deceive).
+    // Roles that are allowed to lie (Drunk is poisoned, minions + demons
+    // deliberately deceive).
     r.get(p, Good(Outsider(Drunk)))
         | r.get(p, Evil(Minion(Baron)))
         | r.get(p, Evil(Minion(Poisoner)))
@@ -86,10 +87,7 @@ impl Registry {
         for seat in 0..num_players {
             let player = Player::Seat(seat.try_into().unwrap());
             for c in Character::iter() {
-                is.insert(
-                    (player, c),
-                    Bool::new_const(format!("is_{player:?}_{c:?}")),
-                );
+                is.insert((player, c), Bool::new_const(format!("is_{player:?}_{c:?}")));
             }
         }
 
@@ -486,8 +484,8 @@ pub fn poisoner_can_poison_one_person_only_if_alive(r: &Registry) -> z3::ast::Bo
 /// Goon is turned good over evil depending upon the exact character
 /// actions - and the night order is extremely important.
 ///
-/// But, as of right now - we have modelled this `Time::{Night, Day}`, and we can
-/// reconsider simplifying or extending this in the future.
+/// But, as of right now - we have modelled this `Time::{Night, Day}`, and we
+/// can reconsider simplifying or extending this in the future.
 pub fn poisoning_does_not_move_during_the_day(registry: &Registry) -> z3::ast::Bool {
     let days: Vec<i32> = TimeIterator::new(registry.until)
         .filter_map(|time| match time {
@@ -542,7 +540,8 @@ pub fn mark_characters_not_in_play(registry: &Registry, characters: &[Character]
 }
 
 /// A player claims to be a character.
-/// Valid if they really are that character, *or* they are a role that is allowed to lie.
+/// Valid if they really are that character, *or* they are a role that is
+/// allowed to lie.
 fn player_claims_character(r: &Registry, claimant: Player, character: Character) -> Bool {
     r.get(claimant, character) | can_lie(r, claimant)
 }
@@ -588,7 +587,8 @@ mod util {
     use itertools::Itertools;
     use z3::ast::Bool;
 
-    // Returns true if a |predicate| holds true for at-least one player at time |time|.
+    // Returns true if a |predicate| holds true for at-least one player at time
+    // |time|.
     pub fn player_any<F>(r: &super::Registry, predicate: F, time: Time) -> Bool
     where
         F: Fn(&super::Registry, Player, Time) -> Bool,

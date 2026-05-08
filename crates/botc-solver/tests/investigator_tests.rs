@@ -19,8 +19,9 @@ use define_solver::define_solver_until;
 fn test_investigator_sees_scarlet_woman_first() {
     // 6-player game (valid 3T/1O/1M/1D):
     // INVESTIGATOR - SCARLET_WOMAN - CHEF - EMPATH - RECLUSE - IMP
-    // InvestigatorSees sees ScarletWoman as the *first* argument (correct registration).
-    // Only one minion (ScarletWoman). No Poisoner is ever used in these tests.
+    // InvestigatorSees sees ScarletWoman as the *first* argument (correct
+    // registration). Only one minion (ScarletWoman). No Poisoner is ever used
+    // in these tests.
     let (solver, registry) = define_solver_until(
         &[
             Good(Townsfolk(Investigator)),
@@ -79,9 +80,9 @@ fn test_investigator_sees_poisoner_recluse_misregistration_sat() {
     // INVESTIGATOR - SCARLET_WOMAN - CHEF - EMPATH - RECLUSE - IMP
     //
     // Investigator claims "I see seats 2 and 4 as Poisoner".
-    // A Recluse exists at seat 4 (the *second* argument) and misregisters as Poisoner
-    // via the `as_token` rule for Evil minions (Recluse counts as any Evil token).
-    // We *never* include an actual Poisoner in any of these tests.
+    // A Recluse exists at seat 4 (the *second* argument) and misregisters as
+    // Poisoner via the `as_token` rule for Evil minions (Recluse counts as any
+    // Evil token). We *never* include an actual Poisoner in any of these tests.
     // The claim is therefore possible precisely because of the Recluse → Sat.
     let (solver, registry) = define_solver_until(
         &[
