@@ -1,7 +1,8 @@
-#![warn(clippy::pedantic)]
+#![deny(clippy::pedantic)]
 use itertools::{Itertools, iproduct};
 use z3::ast::Bool;
 
+#[must_use]
 pub fn assert_life_until_death(r: &super::Registry) -> z3::ast::Bool {
     let players = (0..r.num_players)
         .map(botc_core::Player::Seat)

@@ -1,10 +1,12 @@
+#![deny(clippy::pedantic)]
+
 use itertools::Itertools;
 use std::collections::{BTreeMap, HashMap};
 
 use z3::ast::Bool;
 
 use botc_core::Player::Seat;
-use botc_core::{Character, Claim, Time, TimeIterator};
+use botc_core::{Character, Time, TimeIterator};
 use botc_core::{Player, ReportLog};
 
 pub mod life;
@@ -33,6 +35,7 @@ pub struct Registry {
     is_red_herring: HashMap<Player, Bool>,
 }
 
+#[must_use]
 pub fn game_setup(r: &Registry) -> z3::ast::Bool {
     // players and characters
     setup::assert_player_count_rules(r)
@@ -47,12 +50,12 @@ pub fn game_setup(r: &Registry) -> z3::ast::Bool {
 }
 
 fn can_lie(r: &Registry, p: Player) -> z3::ast::Bool {
-    use botc_core::Character::*;
-    use botc_core::Demon::*;
-    use botc_core::Evil::*;
-    use botc_core::Good::*;
-    use botc_core::Minion::*;
-    use botc_core::Outsider::*;
+    use botc_core::Character::{Evil, Good};
+    use botc_core::Demon::Imp;
+    use botc_core::Evil::{Demon, Minion};
+    use botc_core::Good::Outsider;
+    use botc_core::Minion::{Baron, Poisoner, ScarletWoman, Spy};
+    use botc_core::Outsider::Drunk;
 
     // Roles that are allowed to lie (Drunk is poisoned, minions + demons deliberately deceive).
     r.get(p, Good(Outsider(Drunk)))
@@ -63,16 +66,21 @@ fn can_lie(r: &Registry, p: Player) -> z3::ast::Bool {
         | r.get(p, Evil(Demon(Imp)))
 }
 
-fn must_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
-    registers::must_evil(r, *p1) & registers::must_evil(r, *p2)
+fn must_evil_pair(r: &Registry, p1: Player, p2: Player) -> z3::ast::Bool {
+    registers::must_evil(r, p1) & registers::must_evil(r, p2)
 }
 
-fn can_evil_pair(r: &Registry, p1: &Player, p2: &Player) -> z3::ast::Bool {
-    registers::can_evil(r, *p1) & registers::can_evil(r, *p2)
+fn can_evil_pair(r: &Registry, p1: Player, p2: Player) -> z3::ast::Bool {
+    registers::can_evil(r, p1) & registers::can_evil(r, p2)
 }
 
 impl Registry {
     /// Create a new registry of variables.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `num_players` is greater than `i32::MAX`.
+    #[must_use]
     pub fn new(num_players: usize, until: Time) -> Registry {
         let mut is = HashMap::new();
         for seat in 0..num_players {
@@ -80,7 +88,7 @@ impl Registry {
             for c in Character::iter() {
                 is.insert(
                     (player, c),
-                    Bool::new_const(format!("is_{:?}_{:?}", player, c)),
+                    Bool::new_const(format!("is_{player:?}_{c:?}")),
                 );
             }
         }
@@ -93,7 +101,7 @@ impl Registry {
                     let player = Player::Seat(seat.try_into().unwrap());
                     is_alive.entry(player).or_insert_with(HashMap::new).insert(
                         time,
-                        Bool::new_const(format!("is_alive_{:?}_{:?}", player, time)),
+                        Bool::new_const(format!("is_alive_{player:?}_{time:?}")),
                     );
                 }
             }
@@ -111,7 +119,7 @@ impl Registry {
                         .or_insert_with(HashMap::new)
                         .insert(
                             time,
-                            Bool::new_const(format!("is_poisoned_{:?}_{:?}", player, time)),
+                            Bool::new_const(format!("is_poisoned_{player:?}_{time:?}")),
                         );
                 }
             }
@@ -124,7 +132,7 @@ impl Registry {
                 let player = Player::Seat(seat.try_into().unwrap());
                 is_red_herring.insert(
                     player,
-                    Bool::new_const(format!("is_red_herring_{:?}", player)),
+                    Bool::new_const(format!("is_red_herring_{player:?}")),
                 );
             }
             is_red_herring
@@ -142,26 +150,42 @@ impl Registry {
     }
 
     /// Get the variable that tracks "Is player X character Y?"
+    #[must_use]
     pub fn get(&self, p: Player, c: Character) -> &Bool {
         &self.is_character[&(p, c)]
     }
 
     /// Get the variable that tracks if player X is the red herring.
+    #[must_use]
     pub fn is_red_herring(&self, p: Player) -> &Bool {
         &self.is_red_herring[&p]
     }
 }
 
+/// # Panics
+///
+/// Panics if a `DayExecutes` event is reported during the night.
+#[allow(clippy::too_many_lines)]
+#[must_use]
 pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::ast::Bool {
-    use Character::*;
-    use Claim::*;
-    use botc_core::Demon::*;
-    use botc_core::Evil::*;
-    use botc_core::Good::*;
-    use botc_core::Minion::*;
-    use botc_core::Outsider::*;
+    use botc_core::Character::{Evil, Good};
+    use botc_core::Claim::{
+        Am, ChefGets, EmpathLearnsOne, EmpathLearnsTwo, EmpathLearnsZero, FortuneTellerNo,
+        FortuneTellerYes, InvestigatorSees, LibrarianSees, LibrarianZero, MonkProtectedNightKilled,
+        PoisonerPoisons, RavenkeeperSees, SaintExecutedWithoutDefeat, SlayerKillsDemon,
+        SlayerMisses, SoldierNightKilled, UndertakerSees, VirginKillsTownsfolk, VirginMisses,
+        WasherwomanSees,
+    };
+    use botc_core::Demon::Imp;
+    use botc_core::Evil::{Demon, Minion};
+    use botc_core::Good::{Outsider, Townsfolk};
+    use botc_core::Minion::Poisoner;
+    use botc_core::Outsider::Saint;
     use botc_core::ReportLog::OnTime;
-    use botc_core::Townsfolk::*;
+    use botc_core::Townsfolk::{
+        Chef, Empath, FortuneTeller, Investigator, Librarian, Monk, Ravenkeeper, Slayer, Soldier,
+        Undertaker, Virgin, Washerwoman,
+    };
 
     match log {
         // Character |alpha| claims to be |character|.
@@ -227,15 +251,15 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
 
             let must_pairs: Vec<z3::ast::Int> = (0..r.num_players)
                 .circular_tuple_windows::<(_, _)>()
-                .map(|(p1, p2)| must_evil_pair(r, &Seat(p1), &Seat(p2)).ite(&one, &zero))
+                .map(|(p1, p2)| must_evil_pair(r, Seat(p1), Seat(p2)).ite(&one, &zero))
                 .collect();
 
             let can_pairs: Vec<z3::ast::Int> = (0..r.num_players)
                 .circular_tuple_windows::<(_, _)>()
-                .map(|(p1, p2)| can_evil_pair(r, &Seat(p1), &Seat(p2)).ite(&one, &zero))
+                .map(|(p1, p2)| can_evil_pair(r, Seat(p1), Seat(p2)).ite(&one, &zero))
                 .collect();
 
-            let chef_num = z3::ast::Int::from_i64(*num as i64);
+            let chef_num = z3::ast::Int::from_i64(i64::from(*num));
             let chef_min = z3::ast::Int::add(&must_pairs.iter().collect::<Vec<_>>()).le(&chef_num);
             let chef_max = z3::ast::Int::add(&can_pairs.iter().collect::<Vec<_>>()).ge(&chef_num);
             let chef_correct = chef_min & chef_max;
@@ -309,14 +333,14 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
             // |history|. If we do not do that, then this essentially becomes a
             // RavenKeeper.
             player_claims_character(r, *alpha, Good(Townsfolk(Undertaker)))
-                & player_sees_other_players_character(r, alpha, bravo, *character, t)
+                & player_sees_other_players_character(r, *alpha, *bravo, *character, *t)
         }
 
         // Ravenkeeper |alpha| sees the |bravo| as the |character|.
         OnTime(t, alpha, RavenkeeperSees(bravo, character)) => {
             // TODO: Add checks that |alpha| has JUST died.
             player_claims_character(r, *alpha, Good(Townsfolk(Ravenkeeper)))
-                & player_sees_other_players_character(r, alpha, bravo, *character, t)
+                & player_sees_other_players_character(r, *alpha, *bravo, *character, *t)
         }
 
         // The player |alpha| claims soldier, and is killed in the night.
@@ -410,6 +434,7 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
     }
 }
 
+#[must_use]
 pub fn atmost_one_player_can_be_poisoned(registry: &Registry) -> z3::ast::Bool {
     let constraints: Vec<_> = TimeIterator::new(registry.until)
         .map(|time| {
@@ -421,6 +446,7 @@ pub fn atmost_one_player_can_be_poisoned(registry: &Registry) -> z3::ast::Bool {
     z3::ast::Bool::and(constraints.iter().collect_vec().as_slice())
 }
 
+#[must_use]
 pub fn atmost_one_player_can_be_red_herringed(registry: &Registry) -> z3::ast::Bool {
     let red_herringed =
         (0..registry.num_players).map(|seat| &registry.is_red_herring[&Player::Seat(seat)]);
@@ -430,10 +456,11 @@ pub fn atmost_one_player_can_be_red_herringed(registry: &Registry) -> z3::ast::B
 /// We do not yet support the ability for a player to change characters.
 /// There are cases when a Poisoner could become the next Imp, and that is not
 /// yet handled in this case.
+#[must_use]
 pub fn poisoner_can_poison_one_person_only_if_alive(r: &Registry) -> z3::ast::Bool {
-    use botc_core::Character::*;
-    use botc_core::Evil::*;
-    use botc_core::Minion::*;
+    use botc_core::Character::Evil;
+    use botc_core::Evil::Minion;
+    use botc_core::Minion::Poisoner;
 
     let constraints: Vec<_> = TimeIterator::new(r.until)
         .map(|time| {
@@ -459,13 +486,13 @@ pub fn poisoner_can_poison_one_person_only_if_alive(r: &Registry) -> z3::ast::Bo
 /// Goon is turned good over evil depending upon the exact character
 /// actions - and the night order is extremely important.
 ///
-/// But, as of right now - we have modelled this Time::{Night, Day}, and we can
+/// But, as of right now - we have modelled this `Time::{Night, Day}`, and we can
 /// reconsider simplifying or extending this in the future.
 pub fn poisoning_does_not_move_during_the_day(registry: &Registry) -> z3::ast::Bool {
     let days: Vec<i32> = TimeIterator::new(registry.until)
         .filter_map(|time| match time {
             Time::Day(x) => Some(x),
-            _ => None,
+            Time::Night(_) => None,
         })
         .collect_vec();
 
@@ -501,6 +528,7 @@ fn assert_character_is_alive(r: &Registry, c: Character, time: Time) -> z3::ast:
     z3::ast::Bool::or(is_player_alive_character.iter().collect_vec().as_slice())
 }
 
+#[must_use]
 pub fn mark_characters_not_in_play(registry: &Registry, characters: &[Character]) -> z3::ast::Bool {
     let constraints: Vec<_> = characters
         .iter()
@@ -526,12 +554,12 @@ fn player_must_character(r: &Registry, claimant: Player, character: Character) -
 /// A player (e.g. Ravenskeeper, Undertaker) sees another player's token.
 fn player_sees_other_players_character(
     r: &Registry,
-    seer: &Player,
-    target: &Player,
+    seer: Player,
+    target: Player,
     token: Character,
-    t: &Time,
+    t: Time,
 ) -> Bool {
-    is_effective(r, *seer, *t).implies(registers::as_token(r, *target, token))
+    is_effective(r, seer, t).implies(registers::as_token(r, target, token))
 }
 
 // Validates that a player's ablity should correctly have the right effect.

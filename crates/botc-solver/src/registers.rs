@@ -1,4 +1,4 @@
-#![warn(clippy::pedantic)]
+#![deny(clippy::pedantic)]
 use botc_core::Character::{Evil, Good};
 use botc_core::Demon::Imp;
 use botc_core::Evil::{Demon, Minion};

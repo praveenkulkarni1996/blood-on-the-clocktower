@@ -5,6 +5,7 @@ use itertools::Itertools;
 /// # Panics
 ///
 /// This panics if there are too few (< 0) or too many players (> 15).
+#[must_use]
 pub fn assert_player_count_rules(r: &super::Registry) -> z3::ast::Bool {
     let num_players = usize::try_from(r.num_players).unwrap();
     let base_setup: PlayerCount = BASE_SETUP[num_players];
@@ -120,6 +121,7 @@ fn is_outsider(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
         | r.get(p, Good(Outsider(Saint)))
 }
 
+#[must_use]
 pub fn assert_player_count_by_predicate(
     r: &super::Registry,
     predicate: fn(&super::Registry, botc_core::Player) -> z3::ast::Bool,
@@ -145,6 +147,7 @@ fn assert_setup(r: &super::Registry, setup: PlayerCount) -> z3::ast::Bool {
 
 /// Enforce that every player gets exactly one distinct-token.
 /// NOTE: This logic cannot model Imp moves (Scarlet Woman, or via Starpass).
+#[must_use]
 pub fn assert_unique_player_tokens(r: &super::Registry) -> z3::ast::Bool {
     let players = (0..r.num_players)
         .map(botc_core::Player::Seat)

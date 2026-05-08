@@ -31,7 +31,7 @@ pub fn print_true_variables(model: &z3::Model, r: &Registry) {
             if let Some(val) = model.eval(var, true)
                 && val.as_bool() == Some(true)
             {
-                println!("  {:?} is {:?}", p, c);
+                println!("  {p:?} is {c:?}");
             }
         }
     }
@@ -43,7 +43,7 @@ pub fn print_true_variables(model: &z3::Model, r: &Registry) {
             && let Some(val) = model.eval(var, true)
             && val.as_bool() == Some(true)
         {
-            println!("  {:?} is_red_herring", p);
+            println!("  {p:?} is_red_herring");
         }
     }
 
@@ -57,7 +57,7 @@ pub fn print_true_variables(model: &z3::Model, r: &Registry) {
                 && let Some(val) = model.eval(var, true)
                 && val.as_bool() == Some(true)
             {
-                println!("  {:?} poisoned_at {:?}", p, time);
+                println!("  {p:?} poisoned_at {time:?}");
             }
         }
     }
