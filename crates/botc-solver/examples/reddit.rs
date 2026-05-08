@@ -1,29 +1,32 @@
-use botc_core::Time::*;
-use botc_core::*;
+use botc_core::Time::{Day, Night};
+use botc_core::{Character, Claim, Good, Minion, Outsider, Player, ReportLog, Townsfolk};
 
-/// Taken from Reddit, based on this puzzle by /u/ExcessiveUsernames.
-/// https://www.reddit.com/r/BloodOnTheClocktower/comments/1f6lgjv/trouble_brewing_puzzle/
+/// Taken from Reddit, based on this puzzle by `/u/ExcessiveUsernames`.
+/// <https://www.reddit.com/r/BloodOnTheClocktower/comments/1f6lgjv/trouble_brewing_puzzle/>
 ///
 /// This seems to allow for many different solutions.
 #[allow(unused_variables)]
-fn setup_game() -> Vec<botc_core::ReportLog> {
-    // Cyclic seating order starting from Erika
-    let erika = botc_core::Player::Seat(0);
-    let ailidh = botc_core::Player::Seat(1);
-    let john = botc_core::Player::Seat(2);
-    let rachael = botc_core::Player::Seat(3);
-    let you = botc_core::Player::Seat(4);
-    let edward = botc_core::Player::Seat(5);
-    let derek = botc_core::Player::Seat(6);
-    let kyle = botc_core::Player::Seat(7);
-    let linda = botc_core::Player::Seat(8);
-    let diane = botc_core::Player::Seat(9);
+fn setup_game() -> Vec<ReportLog> {
+    use Claim::{
+        Am, ChefGets, EmpathLearnsOne, FortuneTellerYes, InvestigatorSees, LibrarianSees,
+        RavenkeeperSees, SlayerMisses, VirginKillsTownsfolk, WasherwomanSees,
+    };
+    use Minion::Poisoner;
+    use Outsider::{Drunk, Saint};
+    use ReportLog::OnTime;
+    use Townsfolk::{Empath, Investigator};
 
-    use Claim::*;
-    use Minion::*;
-    use Outsider::*;
-    use ReportLog::*;
-    use Townsfolk::*;
+    // Cyclic seating order starting from Erika
+    let erika = Player::Seat(0);
+    let ailidh = Player::Seat(1);
+    let john = Player::Seat(2);
+    let rachael = Player::Seat(3);
+    let you = Player::Seat(4);
+    let edward = Player::Seat(5);
+    let derek = Player::Seat(6);
+    let kyle = Player::Seat(7);
+    let linda = Player::Seat(8);
+    let diane = Player::Seat(9);
 
     vec![
         OnTime(Night(1), erika, Am(Character::Good(Good::Outsider(Saint)))),
@@ -53,7 +56,7 @@ fn main() {
 
     let history = vec![];
 
-    for &log in claim_logs.iter() {
+    for &log in &claim_logs {
         let ast_constraint = botc_solver::constrain(&registry, &history, &log);
         solver.assert(ast_constraint);
     }

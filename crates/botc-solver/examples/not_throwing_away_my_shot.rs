@@ -1,23 +1,26 @@
-use botc_core::Time::*;
-use botc_core::*;
+use botc_core::Time::{Day, Night};
+use botc_core::{Character, Claim, Good, Minion, Outsider, Player, ReportLog, Townsfolk};
 
-/// Taken from Reddit, based on this puzzle by /u/Not_Quite_Vertical.
-/// https://www.reddit.com/r/BloodOnTheClocktower/comments/1f6lgjv/trouble_brewing_puzzle/
+/// Taken from Reddit, based on this puzzle by `/u/Not_Quite_Vertical`.
+/// <https://www.reddit.com/r/BloodOnTheClocktower/comments/1f6lgjv/trouble_brewing_puzzle/>
 #[allow(unused_variables)]
-fn setup_game() -> Vec<botc_core::ReportLog> {
-    use Claim::*;
-    use Minion::*;
-    use Outsider::*;
-    use ReportLog::*;
-    use Townsfolk::*;
+fn setup_game() -> Vec<ReportLog> {
+    use Claim::{
+        Am, ChefGets, EmpathLearnsZero, InvestigatorSees, LibrarianZero, SlayerKillsDemon,
+        WasherwomanSees,
+    };
+    use Minion::Baron;
+    use Outsider::Recluse;
+    use ReportLog::OnTime;
+    use Townsfolk::Librarian;
 
-    let matthew = botc_core::Player::Seat(0); // Washerwoman
-    let oscar = botc_core::Player::Seat(1); // Librarian
-    let josh = botc_core::Player::Seat(2); // Empath
-    let you = botc_core::Player::Seat(3); // Slayer
-    let aoife = botc_core::Player::Seat(4); // Aoife
-    let tom = botc_core::Player::Seat(5); // Chef
-    let sula = botc_core::Player::Seat(6); // Investigator
+    let matthew = Player::Seat(0); // Washerwoman
+    let oscar = Player::Seat(1); // Librarian
+    let josh = Player::Seat(2); // Empath
+    let you = Player::Seat(3); // Slayer
+    let aoife = Player::Seat(4); // Aoife
+    let tom = Player::Seat(5); // Chef
+    let sula = Player::Seat(6); // Investigator
 
     vec![
         OnTime(Night(1), matthew, WasherwomanSees(aoife, oscar, Librarian)),
@@ -38,7 +41,7 @@ fn main() {
 
     let history = vec![];
 
-    for &log in claim_logs.iter() {
+    for &log in &claim_logs {
         let ast_constraint = botc_solver::constrain(&registry, &history, &log);
         solver.assert(ast_constraint);
     }
@@ -46,7 +49,7 @@ fn main() {
     solver.assert(botc_solver::game_setup(&registry));
     // Must demand that he is a recluse.
     solver.assert(registry.get(
-        botc_core::Player::Seat(5), /* tom */
+        Player::Seat(5), /* tom */
         Character::Good(Good::Outsider(Outsider::Recluse)),
     ));
 
