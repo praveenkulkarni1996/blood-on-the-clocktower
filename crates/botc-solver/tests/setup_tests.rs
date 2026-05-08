@@ -1,10 +1,14 @@
-use botc_core::Character::*;
-use botc_core::Demon::*;
-use botc_core::Evil::*;
-use botc_core::Good::*;
-use botc_core::Minion::*;
-use botc_core::Outsider::*;
-use botc_core::Townsfolk::*;
+#![deny(clippy::pedantic)]
+
+use botc_core::Character::{Evil, Good};
+use botc_core::Demon::Imp;
+use botc_core::Evil::{Demon, Minion};
+use botc_core::Good::{Outsider, Townsfolk};
+use botc_core::Minion::{Baron, Poisoner, ScarletWoman};
+use botc_core::Outsider::{Drunk, Recluse};
+use botc_core::Townsfolk::{
+    Chef, Empath, FortuneTeller, Investigator, Librarian, Mayor, Monk, Slayer, Soldier,
+};
 
 #[path = "define_solver.rs"]
 mod define_solver;
@@ -47,8 +51,8 @@ fn test_10p_no_baron() {
     assert_eq!(solver.check(), z3::SatResult::Unsat);
 }
 
-/// Taken from Reddit, based on this puzzle by /u/Not_Quite_Vertical.
-/// https://www.reddit.com/r/BloodOnTheClocktower/comments/1f6lgjv/trouble_brewing_puzzle/
+/// Taken from Reddit, based on this puzzle by `/u/Not_Quite_Vertical`.
+/// <https://www.reddit.com/r/BloodOnTheClocktower/comments/1f6lgjv/trouble_brewing_puzzle/>
 #[test]
 fn test_7p_baron() {
     let solver = define_solver(&[

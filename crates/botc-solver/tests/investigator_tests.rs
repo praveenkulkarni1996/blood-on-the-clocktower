@@ -1,11 +1,13 @@
-use botc_core::Character::*;
-use botc_core::Demon::*;
-use botc_core::Evil::*;
-use botc_core::Good::*;
-use botc_core::Minion::*;
-use botc_core::Outsider::*;
+#![deny(clippy::pedantic)]
+
+use botc_core::Character::{Evil, Good};
+use botc_core::Demon::Imp;
+use botc_core::Evil::{Demon, Minion};
+use botc_core::Good::{Outsider, Townsfolk};
+use botc_core::Minion::{Baron, Poisoner, ScarletWoman};
+use botc_core::Outsider::{Butler, Recluse, Saint};
 use botc_core::Player::Seat;
-use botc_core::Townsfolk::*;
+use botc_core::Townsfolk::{Chef, Empath, Investigator};
 use botc_core::{Claim, ReportLog, Time};
 use botc_solver::constrain;
 

@@ -1,3 +1,4 @@
+#![deny(clippy::pedantic)]
 use botc_core::{Character, Player::Seat, Time};
 use botc_solver::{Registry, game_setup};
 use z3::Solver;
@@ -7,6 +8,7 @@ use z3::Solver;
 /// for the supplied seating arrangement. Returns only the Solver.
 /// This produces the beautiful one-line tests seen in `setup_tests.rs`.
 #[allow(dead_code)]
+#[must_use]
 pub fn define_solver(tokens: &[Character]) -> Solver {
     define_solver_until(tokens, Time::Day(1)).0
 }
@@ -15,6 +17,7 @@ pub fn define_solver(tokens: &[Character]) -> Solver {
 /// claim-based tests can append `constrain(&registry, ...)` after the call.
 /// Uses the full `game_setup` rule set.
 #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+#[must_use]
 pub fn define_solver_until(tokens: &[Character], until: Time) -> (Solver, Registry) {
     let solver = Solver::new();
     let registry = Registry::new(tokens.len(), until);
