@@ -145,6 +145,11 @@ impl Registry {
     pub fn get(&self, p: Player, c: Character) -> &Bool {
         &self.is_character[&(p, c)]
     }
+
+    /// Get the variable that tracks if player X is the red herring.
+    pub fn is_red_herring(&self, p: Player) -> &Bool {
+        &self.is_red_herring[&p]
+    }
 }
 
 pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::ast::Bool {
@@ -293,8 +298,8 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
                     Bool::from_bool(true)
                         & !bravo_is_red_herring
                         & !charlie_is_red_herring
-                        & !registers::can_demon(r, *bravo)
-                        & !registers::can_demon(r, *charlie),
+                        & !registers::must_demon(r, *bravo)
+                        & !registers::must_demon(r, *charlie),
                 )
         }
 
