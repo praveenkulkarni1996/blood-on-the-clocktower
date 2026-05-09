@@ -364,7 +364,7 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
         // The supposed-virgin |virgin| is unable to kill the first |nominator|.
         OnTime(t, virgin, VirginMisses(nominator)) => {
             player_claims_character(r, *virgin, Good(Townsfolk(Virgin)))
-                & (!is_effective(r, *virgin, *t) ^ !registers::must_townsfolk(r, *nominator))
+                & is_effective(r, *virgin, *t).implies(!registers::must_townsfolk(r, *nominator))
         }
 
         // The player |slayer| is able to kill the |target|.
@@ -377,7 +377,7 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
         // The supposed-slayer |slayer| is unable to kill their |target|.
         OnTime(t, slayer, SlayerMisses(target)) => {
             player_claims_character(r, *slayer, Good(Townsfolk(Slayer)))
-                & (!is_effective(r, *slayer, *t) ^ !registers::must_demon(r, *target))
+                & is_effective(r, *slayer, *t).implies(!registers::must_demon(r, *target))
         }
 
         // The supposed-saint |saint| does not end the game when executed.
