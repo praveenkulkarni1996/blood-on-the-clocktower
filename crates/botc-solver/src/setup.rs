@@ -1,6 +1,7 @@
 #![warn(clippy::pedantic)]
 use botc_core::Character;
 use itertools::Itertools;
+use strum::IntoEnumIterator;
 
 /// # Panics
 ///
@@ -68,57 +69,36 @@ fn is_baron(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
     r.get(p, Evil(Minion(Baron))).clone()
 }
 
-fn is_minion(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
-    use botc_core::Character::Evil;
-    use botc_core::Evil::Minion;
-    use botc_core::Minion::{Baron, Poisoner, ScarletWoman, Spy};
-
-    r.get(p, Evil(Minion(Baron)))
-        | r.get(p, Evil(Minion(Poisoner)))
-        | r.get(p, Evil(Minion(ScarletWoman)))
-        | r.get(p, Evil(Minion(Spy)))
-}
-
-fn is_demon(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
-    use botc_core::Character::Evil;
-    use botc_core::Demon::Imp;
-    use botc_core::Evil::Demon;
-
-    r.get(p, Evil(Demon(Imp))).clone()
-}
-
 fn is_townsfolk(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
-    use botc_core::Character::Good;
-    use botc_core::Good::Townsfolk;
-    use botc_core::Townsfolk::{
-        Chef, Empath, FortuneTeller, Investigator, Librarian, Mayor, Monk, Ravenkeeper, Slayer,
-        Soldier, Undertaker, Virgin, Washerwoman,
-    };
-
-    r.get(p, Good(Townsfolk(Washerwoman)))
-        | r.get(p, Good(Townsfolk(Librarian)))
-        | r.get(p, Good(Townsfolk(Investigator)))
-        | r.get(p, Good(Townsfolk(Chef)))
-        | r.get(p, Good(Townsfolk(Empath)))
-        | r.get(p, Good(Townsfolk(FortuneTeller)))
-        | r.get(p, Good(Townsfolk(Undertaker)))
-        | r.get(p, Good(Townsfolk(Monk)))
-        | r.get(p, Good(Townsfolk(Ravenkeeper)))
-        | r.get(p, Good(Townsfolk(Virgin)))
-        | r.get(p, Good(Townsfolk(Slayer)))
-        | r.get(p, Good(Townsfolk(Soldier)))
-        | r.get(p, Good(Townsfolk(Mayor)))
+    use botc_core::{Good, Townsfolk};
+    let variants = Townsfolk::iter()
+        .map(|t| r.get(p, Character::Good(Good::Townsfolk(t))).clone())
+        .collect_vec();
+    z3::ast::Bool::or(variants.as_slice())
 }
 
 fn is_outsider(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
-    use botc_core::Character::Good;
-    use botc_core::Good::Outsider;
-    use botc_core::Outsider::{Butler, Drunk, Recluse, Saint};
+    use botc_core::{Good, Outsider};
+    let variants = Outsider::iter()
+        .map(|o| r.get(p, Character::Good(Good::Outsider(o))).clone())
+        .collect_vec();
+    z3::ast::Bool::or(variants.as_slice())
+}
 
-    r.get(p, Good(Outsider(Butler)))
-        | r.get(p, Good(Outsider(Drunk)))
-        | r.get(p, Good(Outsider(Recluse)))
-        | r.get(p, Good(Outsider(Saint)))
+fn is_minion(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
+    use botc_core::{Evil, Minion};
+    let variants = Minion::iter()
+        .map(|m| r.get(p, Character::Evil(Evil::Minion(m))).clone())
+        .collect_vec();
+    z3::ast::Bool::or(variants.as_slice())
+}
+
+fn is_demon(r: &super::Registry, p: botc_core::Player) -> z3::ast::Bool {
+    use botc_core::{Demon, Evil};
+    let variants = Demon::iter()
+        .map(|d| r.get(p, Character::Evil(Evil::Demon(d))).clone())
+        .collect_vec();
+    z3::ast::Bool::or(variants.as_slice())
 }
 
 #[must_use]
