@@ -9,6 +9,7 @@ use botc_core::Player::Seat;
 use botc_core::{Character, Time, TimeIterator};
 use botc_core::{Player, ReportLog};
 
+pub mod characters;
 pub mod life;
 pub mod registers;
 pub mod setup;
@@ -163,10 +164,9 @@ impl Registry {
 /// # Panics
 ///
 /// Panics if a `DayExecutes` event is reported during the night.
-#[allow(clippy::too_many_lines)]
 #[must_use]
 pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::ast::Bool {
-    use botc_core::Character::{Evil, Good};
+    use botc_core::Character::Evil;
     use botc_core::Claim::{
         Am, ChefGets, EmpathLearnsOne, EmpathLearnsTwo, EmpathLearnsZero, FortuneTellerNo,
         FortuneTellerYes, InvestigatorSees, LibrarianSees, LibrarianZero, MonkProtectedNightKilled,
@@ -175,15 +175,8 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
         WasherwomanSees,
     };
     use botc_core::Demon::Imp;
-    use botc_core::Evil::{Demon, Minion};
-    use botc_core::Good::{Outsider, Townsfolk};
-    use botc_core::Minion::Poisoner;
-    use botc_core::Outsider::Saint;
+    use botc_core::Evil::Demon;
     use botc_core::ReportLog::OnTime;
-    use botc_core::Townsfolk::{
-        Chef, Empath, FortuneTeller, Investigator, Librarian, Monk, Ravenkeeper, Slayer, Soldier,
-        Undertaker, Virgin, Washerwoman,
-    };
 
     match log {
         // Character |alpha| claims to be |character|.
@@ -195,201 +188,92 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
         }
         // Washerwoman |alpha| sees |bravo| OR |charlie| as character |townsfolk|.
         OnTime(t, alpha, WasherwomanSees(bravo, charlie, townsfolk)) => {
-            player_claims_character(r, *alpha, Good(Townsfolk(Washerwoman)))
-                & see_character_between_player_pair(
-                    r,
-                    *alpha,
-                    *bravo,
-                    *charlie,
-                    Good(Townsfolk(*townsfolk)),
-                    *t,
-                )
+            characters::washerwoman::constrain(r, *t, *alpha, *bravo, *charlie, *townsfolk)
         }
 
         // Librarian |alpha| is told no players are registering as outsiders.
-        OnTime(t, alpha, LibrarianZero) => {
-            player_claims_character(r, *alpha, Good(Townsfolk(Librarian)))
-                & is_effective(r, *alpha, *t).implies(setup::assert_player_count_by_predicate(
-                    r,
-                    registers::must_outsider,
-                    0,
-                ))
-        }
+        OnTime(t, alpha, LibrarianZero) => characters::librarian::zero(r, *t, *alpha),
 
         // Librarian |alpha| sees that either |bravo| OR |charlie| is the Outsider |outsider|.
         OnTime(t, alpha, LibrarianSees(bravo, charlie, outsider)) => {
-            player_claims_character(r, *alpha, Good(Townsfolk(Librarian)))
-                & see_character_between_player_pair(
-                    r,
-                    *alpha,
-                    *bravo,
-                    *charlie,
-                    Good(Outsider(*outsider)),
-                    *t,
-                )
+            characters::librarian::sees(r, *t, *alpha, *bravo, *charlie, *outsider)
         }
 
         // Investigator |alpha| sees that either |bravo| OR |charlie| is the Minion |minion|.
         OnTime(t, alpha, InvestigatorSees(bravo, charlie, minion)) => {
-            player_claims_character(r, *alpha, Good(Townsfolk(Investigator)))
-                & see_character_between_player_pair(
-                    r,
-                    *alpha,
-                    *bravo,
-                    *charlie,
-                    Evil(Minion(*minion)),
-                    *t,
-                )
+            characters::investigator::constrain(r, *t, *alpha, *bravo, *charlie, *minion)
         }
 
-        // Chef |alpha| gets the number |num|. This means that |num| players (other than |alpha|)
-        OnTime(t, alpha, ChefGets(num)) => {
-            let zero = z3::ast::Int::from_i64(0);
-            let one = z3::ast::Int::from_i64(1);
-
-            let must_pairs: Vec<z3::ast::Int> = (0..r.num_players)
-                .circular_tuple_windows::<(_, _)>()
-                .map(|(p1, p2)| must_evil_pair(r, Seat(p1), Seat(p2)).ite(&one, &zero))
-                .collect();
-
-            let can_pairs: Vec<z3::ast::Int> = (0..r.num_players)
-                .circular_tuple_windows::<(_, _)>()
-                .map(|(p1, p2)| can_evil_pair(r, Seat(p1), Seat(p2)).ite(&one, &zero))
-                .collect();
-
-            let chef_num = z3::ast::Int::from_i64(i64::from(*num));
-            let chef_min = z3::ast::Int::add(&must_pairs.iter().collect::<Vec<_>>()).le(&chef_num);
-            let chef_max = z3::ast::Int::add(&can_pairs.iter().collect::<Vec<_>>()).ge(&chef_num);
-            let chef_correct = chef_min & chef_max;
-
-            player_claims_character(r, *alpha, Good(Townsfolk(Chef)))
-                & is_effective(r, *alpha, *t).implies(chef_correct)
-        }
+        // Chef |alpha| gets the number |num|.
+        OnTime(t, alpha, ChefGets(num)) => characters::chef::constrain(r, *t, *alpha, *num),
 
         // Empath |alpha| gets a ZERO on their two alive neighbors: |bravo| and |charlie|.
         OnTime(t, alpha, EmpathLearnsZero(bravo, charlie)) => {
-            // TODO: Add checks to ensure that bravo and charlie are actually alive
-            // neighbors.
-            player_claims_character(r, *alpha, Good(Townsfolk(Empath)))
-                & is_effective(r, *alpha, *t)
-                    .implies(registers::can_good(r, *bravo) & registers::can_good(r, *charlie))
+            characters::empath::learns_zero(r, *t, *alpha, *bravo, *charlie)
         }
 
         // Empath |alpha| gets a ONE on their two alive neighbors: |bravo| and |charlie|.
         OnTime(t, alpha, EmpathLearnsOne(bravo, charlie)) => {
-            // TODO: Add checks to ensure that bravo and charlie are actually alive
-            // neighbors.
-            player_claims_character(r, *alpha, Good(Townsfolk(Empath)))
-                & is_effective(r, *alpha, *t).implies(
-                    (registers::can_good(r, *bravo) & registers::can_evil(r, *charlie))
-                        | (registers::can_evil(r, *bravo) & registers::can_good(r, *charlie)),
-                )
+            characters::empath::learns_one(r, *t, *alpha, *bravo, *charlie)
         }
 
         // Empath |alpha| gets a TWO on their two alive neighbors: |bravo| and |charlie|.
         OnTime(t, alpha, EmpathLearnsTwo(bravo, charlie)) => {
-            // TODO: Add checks to ensure that bravo and charlie are actually alive
-            // neighbors.
-            player_claims_character(r, *alpha, Good(Townsfolk(Empath)))
-                & is_effective(r, *alpha, *t)
-                    .implies(registers::can_evil(r, *bravo) & registers::can_evil(r, *charlie))
+            characters::empath::learns_two(r, *t, *alpha, *bravo, *charlie)
         }
 
         // FortuneTeller |alpha| gets a YES on |bravo| and |charlie|.
         OnTime(t, alpha, FortuneTellerYes(bravo, charlie)) => {
-            let bravo_is_red_herring = &r.is_red_herring[bravo];
-            let charlie_is_red_herring = &r.is_red_herring[charlie];
-
-            player_claims_character(r, *alpha, Good(Townsfolk(FortuneTeller)))
-                & is_effective(r, *alpha, *t).implies(
-                    Bool::from_bool(false)
-                        | bravo_is_red_herring
-                        | charlie_is_red_herring
-                        | registers::can_demon(r, *bravo)
-                        | registers::can_demon(r, *charlie),
-                )
+            characters::fortune_teller::yes(r, *t, *alpha, *bravo, *charlie)
         }
 
         // FortuneTeller |alpha| gets a NO on |bravo| and |charlie|.
         OnTime(t, alpha, FortuneTellerNo(bravo, charlie)) => {
-            let bravo_is_red_herring = &r.is_red_herring[bravo];
-            let charlie_is_red_herring = &r.is_red_herring[charlie];
-
-            player_claims_character(r, *alpha, Good(Townsfolk(FortuneTeller)))
-                & is_effective(r, *alpha, *t).implies(
-                    Bool::from_bool(true)
-                        & !bravo_is_red_herring
-                        & !charlie_is_red_herring
-                        & !registers::must_demon(r, *bravo)
-                        & !registers::must_demon(r, *charlie),
-                )
+            characters::fortune_teller::no(r, *t, *alpha, *bravo, *charlie)
         }
 
         // Undertaker |alpha| sees the previously executed player |bravo| as the |character|.
         OnTime(t, alpha, UndertakerSees(bravo, character)) => {
-            // TODO: Add checks that |bravo| is the previously executed player from
-            // |history|. If we do not do that, then this essentially becomes a
-            // RavenKeeper.
-            player_claims_character(r, *alpha, Good(Townsfolk(Undertaker)))
-                & player_sees_other_players_character(r, *alpha, *bravo, *character, *t)
+            characters::undertaker::constrain(r, *t, *alpha, *bravo, *character)
         }
 
         // Ravenkeeper |alpha| sees the |bravo| as the |character|.
         OnTime(t, alpha, RavenkeeperSees(bravo, character)) => {
-            // TODO: Add checks that |alpha| has JUST died.
-            player_claims_character(r, *alpha, Good(Townsfolk(Ravenkeeper)))
-                & player_sees_other_players_character(r, *alpha, *bravo, *character, *t)
+            characters::ravenkeeper::constrain(r, *t, *alpha, *bravo, *character)
         }
 
         // The player |alpha| claims soldier, and is killed in the night.
-        // TODO: Add checks that the victim is actually dead.
-        OnTime(t, alpha, SoldierNightKilled) => {
-            player_claims_character(r, *alpha, Good(Townsfolk(Soldier)))
-                & !is_effective(r, *alpha, *t)
-        }
+        OnTime(t, alpha, SoldierNightKilled) => characters::soldier::constrain(r, *t, *alpha),
+
         // The player |alpha| claims monk, and his protected player died in the night.
-        // TODO: Add checks that the victim is actually dead.
-        OnTime(t, alpha, MonkProtectedNightKilled) => {
-            player_claims_character(r, *alpha, Good(Townsfolk(Monk))) & !is_effective(r, *alpha, *t)
-        }
+        OnTime(t, alpha, MonkProtectedNightKilled) => characters::monk::constrain(r, *t, *alpha),
 
         // The virgin |alpha| kills the first |nominator|.
-        // NOTE: The exact details about nominating are modelled at a higher level.
         OnTime(t, alpha, VirginKillsTownsfolk(nominator)) => {
-            player_must_character(r, *alpha, Good(Townsfolk(Virgin)))
-                & is_effective(r, *alpha, *t)
-                & registers::can_townsfolk(r, *nominator)
+            characters::virgin::kills_townsfolk(r, *t, *alpha, *nominator)
         }
 
         // The supposed-virgin |virgin| is unable to kill the first |nominator|.
         OnTime(t, virgin, VirginMisses(nominator)) => {
-            player_claims_character(r, *virgin, Good(Townsfolk(Virgin)))
-                & is_effective(r, *virgin, *t).implies(!registers::must_townsfolk(r, *nominator))
+            characters::virgin::misses(r, *t, *virgin, *nominator)
         }
 
         // The player |slayer| is able to kill the |target|.
         OnTime(t, slayer, SlayerKillsDemon(target)) => {
-            player_must_character(r, *slayer, Good(Townsfolk(Slayer)))
-                & is_effective(r, *slayer, *t)
-                & registers::can_demon(r, *target)
+            characters::slayer::kills_demon(r, *t, *slayer, *target)
         }
 
         // The supposed-slayer |slayer| is unable to kill their |target|.
         OnTime(t, slayer, SlayerMisses(target)) => {
-            player_claims_character(r, *slayer, Good(Townsfolk(Slayer)))
-                & is_effective(r, *slayer, *t).implies(!registers::must_demon(r, *target))
+            characters::slayer::misses(r, *t, *slayer, *target)
         }
 
         // The supposed-saint |saint| does not end the game when executed.
-        OnTime(t, saint, SaintExecutedWithoutDefeat) => {
-            player_claims_character(r, *saint, Good(Outsider(Saint))) & !is_effective(r, *saint, *t)
-        }
+        OnTime(t, saint, SaintExecutedWithoutDefeat) => characters::saint::constrain(r, *t, *saint),
 
         // NOTE: This is the only explicit evil-player action - meant for debugging use only.
-        // We force POISONER role.
         OnTime(t, poisoner, PoisonerPoisons(victim)) => {
-            player_must_character(r, *poisoner, Evil(Minion(Poisoner)))
-                & r.is_poisoned[victim][t].clone()
+            characters::poisoner::constrain(r, *t, *poisoner, *victim)
         }
 
         // The town executes the |player| at time |t|.
@@ -399,7 +283,6 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
                 Time::Night(_) => panic!("cannot have night execution"),
             };
 
-            // A list of variables "Player P is dead at future time T"
             let player_is_not_alive: Vec<Bool> =
                 TimeIterator::new_with_start(Time::Night(day + 1), r.until)
                     .map(|time| !r.is_alive[player][&time].clone())
@@ -417,7 +300,6 @@ pub fn constrain(r: &Registry, _history: &[ReportLog], log: &ReportLog) -> z3::a
                 Time::Night(night) => night,
             };
 
-            // A list of variables "Player P is dead at future time T"
             let player_is_not_alive: Vec<Bool> =
                 TimeIterator::new_with_start(Time::Night(*night), r.until)
                     .map(|time| !r.is_alive[player][&time].clone())

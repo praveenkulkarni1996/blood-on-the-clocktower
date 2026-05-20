@@ -1,0 +1,14 @@
+pub mod chef;
+pub mod empath;
+pub mod fortune_teller;
+pub mod investigator;
+pub mod librarian;
+pub mod monk;
+pub mod poisoner;
+pub mod ravenkeeper;
+pub mod saint;
+pub mod slayer;
+pub mod soldier;
+pub mod undertaker;
+pub mod virgin;
+pub mod washerwoman;
